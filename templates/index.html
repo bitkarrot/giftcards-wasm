@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gift Cards</title>
+<link rel="stylesheet" href="/ext-assets/giftcards/_lnbits/quasar.css">
+<link rel="stylesheet" href="/ext-assets/giftcards/_lnbits/material-icons.css">
+<link rel="stylesheet" href="/ext-assets/giftcards/_lnbits/bundle.min.css">
+<link rel="stylesheet" href="/ext-assets/giftcards/css/index.css">
+</head>
+<body>
+<div id="app" class="page">
+  <div class="header">
+    <h1><span class="material-icons icon">card_giftcard</span> Gift Cards</h1>
+    <button class="btn btn-primary" id="btn-create">Create Gift Card</button>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="list" id="tab-list">My Cards</div>
+    <div class="tab" data-tab="bulk" id="tab-bulk">Bulk Create</div>
+  </div>
+
+  <div id="view-list">
+    <div class="filters">
+      <select id="filter-status">
+        <option value="">All Status</option>
+        <option value="active">Active</option>
+        <option value="redeemed">Redeemed</option>
+        <option value="expired">Expired</option>
+      </select>
+      <input type="text" id="search-query" placeholder="Search...">
+      <button class="btn btn-sm" id="btn-search">Search</button>
+    </div>
+    <div id="card-list-container">
+      <div class="loading" id="loading-msg">Loading...</div>
+    </div>
+  </div>
+
+  <div id="view-bulk" class="gift-card hidden">
+    <div class="form-group">
+      <label>Number of cards</label>
+      <input type="number" id="bulk-count" value="5" min="1" max="500">
+    </div>
+    <div class="form-group">
+      <label>Amount (sats) per card</label>
+      <input type="number" id="bulk-amount" value="1000" min="1">
+    </div>
+    <div class="form-group">
+      <label>Sender Name</label>
+      <input type="text" id="bulk-sender">
+    </div>
+    <div class="form-group">
+      <label>Default Message</label>
+      <textarea id="bulk-message" rows="2"></textarea>
+    </div>
+    <button class="btn btn-primary" id="btn-bulk-create">Create Cards</button>
+    <div id="bulk-result" class="result-msg"></div>
+  </div>
+</div>
+
+<!-- Create Dialog -->
+<div class="dialog-overlay hidden" id="create-dialog">
+  <div class="dialog">
+    <h2>Create Gift Card</h2>
+    <div class="form-group">
+      <label>Amount (sats)</label>
+      <input type="number" id="create-amount" value="1000" min="1">
+    </div>
+    <div class="form-group">
+      <label>Recipient Name</label>
+      <input type="text" id="create-recipient-name">
+    </div>
+    <div class="form-group">
+      <label>Recipient Email</label>
+      <input type="email" id="create-recipient-email">
+    </div>
+    <div class="form-group">
+      <label>Sender Name</label>
+      <input type="text" id="create-sender-name">
+    </div>
+    <div class="form-group">
+      <label>Message</label>
+      <textarea id="create-message" rows="3"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Expires At (optional, e.g. 2026-12-31)</label>
+      <input type="text" id="create-expires-at">
+    </div>
+    <div class="dialog-actions">
+      <button class="btn" id="btn-create-cancel">Cancel</button>
+      <button class="btn btn-primary" id="btn-create-confirm">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Card Detail Dialog -->
+<div class="dialog-overlay hidden" id="card-dialog">
+  <div class="dialog">
+    <h2 id="card-dialog-title">Gift Card</h2>
+    <div id="card-dialog-body"></div>
+    <div class="detail-actions">
+      <button class="btn" id="btn-download-image">Download Image</button>
+      <button class="btn" id="btn-card-close">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Deliver Dialog -->
+<div class="dialog-overlay hidden" id="deliver-dialog">
+  <div class="dialog">
+    <h2>Send Gift Card Email</h2>
+    <div class="form-group">
+      <label>Recipient Email</label>
+      <input type="email" id="deliver-email">
+    </div>
+    <div class="form-group">
+      <label>Subject (optional)</label>
+      <input type="text" id="deliver-subject">
+    </div>
+    <div class="form-group">
+      <label>Email API URL</label>
+      <input type="text" id="deliver-api-url" placeholder="https://api.resend.com/emails">
+    </div>
+    <div class="form-group">
+      <label>Email API Key</label>
+      <input type="password" id="deliver-api-key" placeholder="re_xxxxx">
+    </div>
+    <div class="dialog-actions">
+      <button class="btn" id="btn-deliver-cancel">Cancel</button>
+      <button class="btn btn-primary" id="btn-deliver-send">Send</button>
+    </div>
+  </div>
+</div>
+
+<script src="/ext-assets/giftcards/js/qrcode.min.js"></script>
+<script src="/ext-assets/giftcards/js/qr-helper.js"></script>
+<script src="/ext-assets/giftcards/js/bridge.js"></script>
+<script src="/ext-assets/giftcards/js/index.js"></script>
+</body>
+</html>

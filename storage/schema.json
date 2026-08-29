@@ -1,0 +1,35 @@
+{
+    "tables": {
+        "cards": {
+            "fields": [
+                {"name": "id", "type": "string"},
+                {"name": "cardId", "type": "string"},
+                {"name": "walletId", "type": "string"},
+                {"name": "amount", "type": "integer"},
+                {"name": "tokenHash", "type": "string"},
+                {"name": "rawToken", "type": "string"},
+                {"name": "status", "type": "string", "default": "active"},
+                {"name": "recipientName", "type": "string", "default": ""},
+                {"name": "senderName", "type": "string", "default": ""},
+                {"name": "message", "type": "string", "default": ""},
+                {"name": "recipientEmail", "type": "string", "default": ""},
+                {"name": "emailStatus", "type": "string", "default": "not_sent"},
+                {"name": "createdAt", "type": "string"},
+                {"name": "expiresAt", "type": "string", "default": ""},
+                {"name": "redeemedAt", "type": "string", "default": ""},
+                {"name": "expiredAt", "type": "string", "default": ""},
+                {"name": "baseUrl", "type": "string", "default": ""},
+                {"name": "designJson", "type": "string", "default": ""}
+            ]
+        },
+        "magic_links": {
+            "fields": [
+                {"name": "id", "type": "string"},
+                {"name": "email", "type": "string"},
+                {"name": "createdAt", "type": "string"},
+                {"name": "expiresAt", "type": "string"},
+                {"name": "usedAt", "type": "string", "default": ""}
+            ]
+        }
+    }
+}

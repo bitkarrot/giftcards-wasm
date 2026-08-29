@@ -1,0 +1,151 @@
+{
+    "id": "giftcards",
+    "name": "Gift Cards",
+    "short_description": "Create and redeem Lightning gift cards with LNURL-withdraw",
+    "version": "0.1.0",
+    "extension_type": "wasm",
+    "wasm": {
+        "module": "wasm/target/wasm32-wasip1/release/giftcards_wasm.wasm",
+        "wit": "wasm/wit/world.wit",
+        "world": "giftcards",
+        "exports": [
+            {"name": "create-card", "visibility": "authenticated"},
+            {"name": "get-cards", "visibility": "authenticated"},
+            {"name": "get-card", "visibility": "authenticated"},
+            {"name": "update-card", "visibility": "authenticated"},
+            {"name": "delete-card", "visibility": "authenticated"},
+            {"name": "bulk-create", "visibility": "authenticated"},
+            {"name": "bulk-delete", "visibility": "authenticated"},
+            {"name": "deliver-email", "visibility": "authenticated"},
+            {"name": "get-public-card", "visibility": "public"},
+            {"name": "lnurl-params", "visibility": "public"},
+            {"name": "lnurl-callback", "visibility": "public"},
+            {"name": "claim-cards", "visibility": "public"},
+            {"name": "verify-claim", "visibility": "public"},
+            {"name": "on-invoice-paid", "visibility": "event"}
+        ]
+    },
+    "ui_routes": [
+        {
+            "path": "/giftcards",
+            "entrypoint": "templates/index.html",
+            "auth": "user"
+        },
+        {
+            "path": "/giftcards/redeem/{token}",
+            "entrypoint": "templates/redeem.html",
+            "auth": "public"
+        },
+        {
+            "path": "/giftcards/claim",
+            "entrypoint": "templates/claim.html",
+            "auth": "public"
+        },
+        {
+            "path": "/giftcards/claim/{token}",
+            "entrypoint": "templates/claim.html",
+            "auth": "public"
+        }
+    ],
+    "api_routes": [
+        {
+            "method": "POST",
+            "path": "/cards",
+            "export": "create-card",
+            "auth": "user"
+        },
+        {
+            "method": "GET",
+            "path": "/cards",
+            "export": "get-cards",
+            "auth": "user"
+        },
+        {
+            "method": "GET",
+            "path": "/cards/{cardId}",
+            "export": "get-card",
+            "auth": "user"
+        },
+        {
+            "method": "PUT",
+            "path": "/cards/{cardId}",
+            "export": "update-card",
+            "auth": "user"
+        },
+        {
+            "method": "DELETE",
+            "path": "/cards/{cardId}",
+            "export": "delete-card",
+            "auth": "user"
+        },
+        {
+            "method": "POST",
+            "path": "/cards/bulk",
+            "export": "bulk-create",
+            "auth": "user"
+        },
+        {
+            "method": "DELETE",
+            "path": "/cards/bulk",
+            "export": "bulk-delete",
+            "auth": "user"
+        },
+        {
+            "method": "POST",
+            "path": "/cards/{cardId}/deliver",
+            "export": "deliver-email",
+            "auth": "user"
+        },
+        {
+            "method": "GET",
+            "path": "/cards/public/{tokenHash}",
+            "export": "get-public-card",
+            "auth": "public",
+            "ownerContext": {"table": "cards", "idParam": "tokenHash"}
+        },
+        {
+            "method": "GET",
+            "path": "/lnurl/{tokenHash}",
+            "export": "lnurl-params",
+            "auth": "public",
+            "ownerContext": {"table": "cards", "idParam": "tokenHash"}
+        },
+        {
+            "method": "GET",
+            "path": "/lnurl/callback",
+            "export": "lnurl-callback",
+            "auth": "public",
+            "ownerContext": {"table": "cards", "idParam": "k1"}
+        },
+        {
+            "method": "POST",
+            "path": "/claim",
+            "export": "claim-cards",
+            "auth": "public"
+        },
+        {
+            "method": "GET",
+            "path": "/claim/{magicToken}",
+            "export": "verify-claim",
+            "auth": "public",
+            "ownerContext": {"table": "magic_links", "idParam": "magicToken"}
+        }
+    ],
+    "events": {
+        "onInvoicePaid": "on-invoice-paid"
+    },
+    "permissions": [
+        {"id": "ext.storage.read", "description": "Read gift card storage"},
+        {"id": "ext.storage.read_public", "description": "Read public gift card data", "policies": [{"table_name": "cards", "public_fields": ["id", "cardId", "amount", "status", "recipientName", "senderName", "message", "recipientEmail", "emailStatus", "createdAt", "expiresAt", "redeemedAt", "expiredAt", "baseUrl", "designJson", "walletId", "tokenHash", "rawToken"], "source_id_field": "id"}, {"table_name": "magic_links", "public_fields": ["id", "email", "createdAt", "expiresAt", "usedAt"], "source_id_field": "id"}]},
+        {"id": "ext.storage.write", "description": "Write gift card storage"},
+        {"id": "ext.storage.append_public", "description": "Append public gift card data", "policies": [{"table": "magic_links", "source_table": "cards", "source_id_field": "tokenHash", "allowed_fields": ["email", "createdAt", "expiresAt", "usedAt"], "max_rows_per_source": 100}]},
+        {"id": "wallet.balance.read", "description": "Read wallet balance"},
+        {"id": "wallet.create_invoice", "description": "Create invoices"},
+        {"id": "wallet.create_invoice_public", "description": "Create public invoices", "policies": [{"table": "cards", "wallet_field": "walletId"}]},
+        {"id": "wallet.pay_invoice", "description": "Pay invoices (redeem gift cards)"},
+        {"id": "wallet.pay_invoice_background", "description": "Pay invoices in background"},
+        {"id": "wallet.list", "description": "List user wallets"},
+        {"id": "http.request", "description": "Send HTTP requests (email delivery)", "policies": [{"host": "*"}]},
+        {"id": "websocket.publish", "description": "Publish websocket messages", "policies": [{"max_messages_per_second": 10}]}
+    ]
+}

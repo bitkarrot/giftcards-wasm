@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claim Gift Cards</title>
+<link rel="stylesheet" href="/ext-assets/giftcards/_lnbits/quasar.css">
+<link rel="stylesheet" href="/ext-assets/giftcards/_lnbits/material-icons.css">
+<link rel="stylesheet" href="/ext-assets/giftcards/_lnbits/bundle.min.css">
+<link rel="stylesheet" href="/ext-assets/giftcards/css/claim.css">
+</head>
+<body>
+<div class="card-container" id="claim-container">
+  <h1>Claim Your Gift Cards</h1>
+  <div id="claim-form-view">
+    <p class="message">Enter your email to receive a link to claim your pending gift cards.</p>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="claim-email" placeholder="your@email.com">
+    </div>
+    <button class="btn" id="btn-claim">Send Claim Link</button>
+    <div id="claim-result" class="message"></div>
+  </div>
+  <div id="claim-cards-view" class="hidden">
+    <div id="claim-cards-list"></div>
+  </div>
+  <div id="claim-error" class="error hidden"></div>
+</div>
+
+<script src="/ext-assets/giftcards/js/bridge.js"></script>
+<script src="/ext-assets/giftcards/js/claim.js"></script>
+</body>
+</html>

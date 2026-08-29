@@ -1,0 +1,169 @@
+package lnbits:extension;
+
+interface host {
+    // --- Storage ---
+    record storage-get-request {
+        table: string,
+        id: string,
+    }
+    record storage-get-response {
+        data-json: option<string>,
+    }
+    storage-get: func(req: storage-get-request) -> storage-get-response;
+
+    record storage-get-public-request {
+        table: string,
+        id: string,
+    }
+    storage-get-public: func(req: storage-get-public-request) -> storage-get-response;
+
+    record storage-set-request {
+        table: string,
+        data-json: option<string>,
+    }
+    record storage-set-response {
+        ok: bool,
+    }
+    storage-set: func(req: storage-set-request) -> storage-set-response;
+
+    record storage-delete-request {
+        table: string,
+        id: string,
+    }
+    record storage-delete-response {
+        ok: bool,
+    }
+    storage-delete: func(req: storage-delete-request) -> storage-delete-response;
+
+    record storage-paginated-request {
+        table: string,
+        filters-json: option<string>,
+        search: option<string>,
+        search-fields-json: option<string>,
+        sort-by: option<string>,
+        descending: bool,
+        limit: u32,
+        offset: u32,
+    }
+    record storage-paginated-response {
+        rows-json: string,
+        total: u32,
+    }
+    storage-get-paginated: func(req: storage-paginated-request) -> storage-paginated-response;
+
+    record storage-public-paginated-request {
+        table: string,
+        filters-json: option<string>,
+        limit: u32,
+        offset: u32,
+    }
+    storage-get-public-paginated: func(req: storage-public-paginated-request) -> storage-paginated-response;
+
+    // --- Wallet ---
+    record pay-invoice-request {
+        wallet-id: string,
+        payment-request: string,
+        max-sat: option<u64>,
+        description: string,
+    }
+    record pay-invoice-response {
+        ok: bool,
+        error: option<string>,
+        checking-id: option<string>,
+        payment-hash: option<string>,
+        status: option<string>,
+        amount-msat: u64,
+        fee-msat: u64,
+        pending: bool,
+        success: bool,
+    }
+    pay-invoice: func(req: pay-invoice-request) -> pay-invoice-response;
+
+    record wallet-balance-request {
+        wallet-id: string,
+    }
+    record wallet-balance-response {
+        wallet-id: string,
+        name: string,
+        currency: option<string>,
+        balance-msat: u64,
+        balance-sat: u64,
+        withdrawable-msat: u64,
+        withdrawable-sat: u64,
+        fee-reserve-msat: u64,
+        fee-reserve-sat: u64,
+        can-send-payments: bool,
+    }
+    wallet-balance: func(req: wallet-balance-request) -> wallet-balance-response;
+
+    record wallet-summary {
+        id: string,
+        name: string,
+        currency: option<string>,
+    }
+    record list-wallets-response {
+        wallets: list<wallet-summary>,
+    }
+    list-user-wallets: func() -> list-wallets-response;
+
+    // --- HTTP ---
+    record http-request-params {
+        method: string,
+        url: string,
+        headers: list<tuple<string, string>>,
+        body: option<string>,
+    }
+    record http-response-data {
+        status-code: u32,
+        headers: list<tuple<string, string>>,
+        body: string,
+    }
+    http-request: func(req: http-request-params) -> http-response-data;
+
+    // --- System ---
+    record now-response {
+        timestamp: u64,
+    }
+    now: func() -> now-response;
+
+    record random-id-request {
+        prefix: string,
+    }
+    record random-id-response {
+        id: string,
+    }
+    random-id: func(req: random-id-request) -> random-id-response;
+
+    record log-request {
+        level: string,
+        message: string,
+    }
+    record log-response {
+        ok: bool,
+    }
+    log: func(req: log-request) -> log-response;
+}
+
+world giftcards {
+    import host;
+
+    // Authenticated API exports (JSON string in, JSON string out)
+    export create-card: func(payload: string) -> string;
+    export get-cards: func(payload: string) -> string;
+    export get-card: func(payload: string) -> string;
+    export update-card: func(payload: string) -> string;
+    export delete-card: func(payload: string) -> string;
+    export bulk-create: func(payload: string) -> string;
+    export bulk-delete: func(payload: string) -> string;
+    export deliver-email: func(payload: string) -> string;
+
+    // Public API exports
+    export get-public-card: func(payload: string) -> string;
+    export lnurl-params: func(payload: string) -> string;
+    export lnurl-callback: func(payload: string) -> string;
+    export claim-cards: func(payload: string) -> string;
+    export verify-claim: func(payload: string) -> string;
+
+    // Event export
+    export on-invoice-paid: func(payload: string) -> string;
+}
