@@ -20,7 +20,7 @@
             <q-icon name="card_giftcard" color="primary" size="48px"></q-icon>
             <h5 class="text-h6 q-mt-md">Claim Your Gift Card</h5>
             <p class="text-body2 text-grey">Enter your email to receive a verification link for any pending gift cards.</p>
-            <q-form @submit.prevent="submitClaim">
+            <q-form @submit="submitClaim">
               <q-input
                 filled
                 dense
@@ -33,7 +33,8 @@
                 unelevated
                 color="primary"
                 size="lg"
-                type="submit"
+                type="button"
+                @click.prevent="submitClaim"
                 label="Send Verification Link"
                 :loading="submitting"
                 class="q-mt-md"

@@ -589,7 +589,8 @@
                 <q-btn
                   unelevated
                   color="primary"
-                  type="submit"
+                  type="button"
+                  @click.prevent="createGiftCard"
                   label="Create Gift Card"
                   :loading="createDialog.loading"
                 ></q-btn>
@@ -759,7 +760,8 @@
                 <q-btn
                   unelevated
                   color="primary"
-                  type="submit"
+                  type="button"
+                  @click.prevent="sendEmail"
                   label="Send Email"
                   :loading="emailDialog.loading"
                 ></q-btn>
@@ -1266,7 +1268,8 @@
                 <q-btn
                   unelevated
                   color="primary"
-                  type="submit"
+                  type="button"
+                  @click.prevent="submitBulkCreate"
                   :label="bulkSubmitLabel"
                   :loading="bulkDialog.loading"
                   :disable="bulkSubmitDisabled"
@@ -1607,7 +1610,8 @@
                 <q-btn
                   unelevated
                   color="primary"
-                  type="submit"
+                  type="button"
+                  @click.prevent="saveCardEdit"
                   label="Save Changes"
                   :loading="editDialog.loading"
                 ></q-btn>

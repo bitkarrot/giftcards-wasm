@@ -75,12 +75,12 @@ async function dismissDialogs(page) {
 // Helper: fill a Quasar q-input by its label text
 async function fillQInput(frame, labelText, value) {
   // Quasar wraps inputs in .q-field with a label. Find the input inside.
-  const field = await frame.$(`.q-field:has(.q-label:has-text("${labelText}")) input`);
+  const field = await frame.$(`.q-field:has(.q-field__label:has-text("${labelText}")) input`);
   if (field) {
     await field.fill(value);
   } else {
     // Fallback: try textarea
-    const textarea = await frame.$(`.q-field:has(.q-label:has-text("${labelText}")) textarea`);
+    const textarea = await frame.$(`.q-field:has(.q-field__label:has-text("${labelText}")) textarea`);
     if (textarea) {
       await textarea.fill(value);
     }
@@ -90,7 +90,7 @@ async function fillQInput(frame, labelText, value) {
 // Helper: select an option in a Quasar q-select by label
 async function selectQOption(frame, labelText, optionText) {
   // Click the select to open the dropdown
-  const select = await frame.$(`.q-field:has(.q-label:has-text("${labelText}"))`);
+  const select = await frame.$(`.q-field:has(.q-field__label:has-text("${labelText}"))`);
   if (select) {
     await select.click();
     await frame.waitForTimeout(500);
@@ -150,7 +150,7 @@ test('create a gift card', async ({ page }) => {
 
   // Submit the form — click the submit button (inside the dialog, not the header)
   // The dialog submit button has type="submit" and label "Create Gift Card"
-  const dialogSubmit = extFrame.locator('.q-dialog .q-btn[type="submit"]:has-text("Create Gift Card")');
+  const dialogSubmit = extFrame.locator('.q-dialog .q-btn.bg-primary:has-text("Create Gift Card")');
   await dialogSubmit.click();
   await page.waitForTimeout(5000);
 

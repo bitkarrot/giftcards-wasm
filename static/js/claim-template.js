@@ -31,9 +31,7 @@ return function render(_ctx, _cache) {
                     }),
                     _createElementVNode("h5", { class: "text-h6 q-mt-md" }, "Claim Your Gift Card"),
                     _createElementVNode("p", { class: "text-body2 text-grey" }, "Enter your email to receive a verification link for any pending gift cards."),
-                    _createVNode(_component_q_form, {
-                      onSubmit: _withModifiers(_ctx.submitClaim, ["prevent"])
-                    }, {
+                    _createVNode(_component_q_form, { onSubmit: _ctx.submitClaim }, {
                       default: _withCtx(() => [
                         _createVNode(_component_q_input, {
                           filled: "",
@@ -49,11 +47,12 @@ return function render(_ctx, _cache) {
                           unelevated: "",
                           color: "primary",
                           size: "lg",
-                          type: "submit",
+                          type: "button",
+                          onClick: _withModifiers(_ctx.submitClaim, ["prevent"]),
                           label: "Send Verification Link",
                           loading: _ctx.submitting,
                           class: "q-mt-md"
-                        }, null, 8 /* PROPS */, ["loading"])
+                        }, null, 8 /* PROPS */, ["onClick", "loading"])
                       ]),
                       _: 1 /* STABLE */
                     }, 8 /* PROPS */, ["onSubmit"])

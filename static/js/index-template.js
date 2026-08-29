@@ -823,10 +823,11 @@ return function render(_ctx, _cache) {
                           _createVNode(_component_q_btn, {
                             unelevated: "",
                             color: "primary",
-                            type: "submit",
+                            type: "button",
+                            onClick: _withModifiers(_ctx.createGiftCard, ["prevent"]),
                             label: "Create Gift Card",
                             loading: _ctx.createDialog.loading
-                          }, null, 8 /* PROPS */, ["loading"]),
+                          }, null, 8 /* PROPS */, ["onClick", "loading"]),
                           _withDirectives(_createVNode(_component_q_btn, {
                             flat: "",
                             color: "grey",
@@ -1023,10 +1024,11 @@ return function render(_ctx, _cache) {
                       _createVNode(_component_q_btn, {
                         unelevated: "",
                         color: "primary",
-                        type: "submit",
+                        type: "button",
+                        onClick: _withModifiers(_ctx.sendEmail, ["prevent"]),
                         label: "Send Email",
                         loading: _ctx.emailDialog.loading
-                      }, null, 8 /* PROPS */, ["loading"]),
+                      }, null, 8 /* PROPS */, ["onClick", "loading"]),
                       _withDirectives(_createVNode(_component_q_btn, {
                         flat: "",
                         dense: "",
@@ -1781,11 +1783,12 @@ return function render(_ctx, _cache) {
                       _createVNode(_component_q_btn, {
                         unelevated: "",
                         color: "primary",
-                        type: "submit",
+                        type: "button",
+                        onClick: _withModifiers(_ctx.submitBulkCreate, ["prevent"]),
                         label: _ctx.bulkSubmitLabel,
                         loading: _ctx.bulkDialog.loading,
                         disable: _ctx.bulkSubmitDisabled
-                      }, null, 8 /* PROPS */, ["label", "loading", "disable"]),
+                      }, null, 8 /* PROPS */, ["onClick", "label", "loading", "disable"]),
                       _withDirectives(_createVNode(_component_q_btn, {
                         flat: "",
                         color: "grey",
@@ -2228,10 +2231,11 @@ return function render(_ctx, _cache) {
                           _createVNode(_component_q_btn, {
                             unelevated: "",
                             color: "primary",
-                            type: "submit",
+                            type: "button",
+                            onClick: _withModifiers(_ctx.saveCardEdit, ["prevent"]),
                             label: "Save Changes",
                             loading: _ctx.editDialog.loading
-                          }, null, 8 /* PROPS */, ["loading"]),
+                          }, null, 8 /* PROPS */, ["onClick", "loading"]),
                           _withDirectives(_createVNode(_component_q_btn, {
                             flat: "",
                             color: "grey",
