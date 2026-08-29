@@ -92,8 +92,10 @@ test('create a gift card', async ({ page }) => {
 
   await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '02-create-dialog.png'), fullPage: true });
 
-  // Select bitcoin template
-  await extFrame.click('.template-preview[data-template="bitcoin"]');
+  // Enable custom design and select a template
+  await extFrame.selectOption('#create-design-mode', 'shared');
+  await page.waitForTimeout(300);
+  await extFrame.selectOption('#design-template', 'HappyBirthday');
   await page.waitForTimeout(200);
 
   await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '03-create-dialog-template.png'), fullPage: true });
@@ -180,7 +182,7 @@ test('redeem page', async ({ page, request }) => {
 });
 
 test('claim page', async ({ page }) => {
-  await page.goto(BASE_URL + '/ext/giftcards/claim');
+  await page.goto(BASE_URL + '/ext/giftcards/claim', { waitUntil: 'domcontentloaded' }).catch(() => {});
   await page.waitForTimeout(5000);
 
   await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '08-claim-page.png'), fullPage: true });

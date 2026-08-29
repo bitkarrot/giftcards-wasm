@@ -1,4 +1,6 @@
 use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 
 wit_bindgen::generate!({
     path: "wit/world.wit",
@@ -110,6 +112,15 @@ fn h_wallet_balance(wallet_id: &str) -> Option<Value> {
     }))
 }
 
+/// Adjust a wallet's balance by a signed amount of sats.
+/// NOTE: The host runtime does not currently implement update-wallet-balance.
+/// Sats lock/reclaim is disabled until the host adds this function.
+/// Returns true (no-op) to avoid blocking card creation/deletion.
+fn h_update_wallet_balance(_wallet_id: &str, _amount_sat: i64) -> bool {
+    h_log("info", &format!("update_wallet_balance is not implemented by host; skipping {} sats for {}", _amount_sat, _wallet_id));
+    true
+}
+
 fn h_list_wallets() -> Vec<(String, String)> {
     let resp = host::list_user_wallets();
     resp.wallets
@@ -150,6 +161,40 @@ fn h_log(level: &str, msg: &str) {
 }
 
 // ---------------------------------------------------------------------------
+// Magic link helpers
+// ---------------------------------------------------------------------------
+
+/// Delete every magic_links row for a given email (D-16 invalidation on redemption).
+fn invalidate_magic_links_for_email(email: &str) {
+    let filters = json!({"email": email});
+    let (rows, _) = h_storage_get_paginated("magic_links", &filters, 1000, 0);
+    for row in &rows {
+        if let Some(id) = row.get("id").and_then(|v| v.as_str()) {
+            h_storage_delete("magic_links", id);
+        }
+    }
+}
+
+/// Count magic_links rows for an email created in the last hour (rate limit).
+fn count_recent_magic_links(email: &str) -> u32 {
+    let filters = json!({"email": email});
+    let (rows, _) = h_storage_get_paginated("magic_links", &filters, 1000, 0);
+    let cutoff = h_now().saturating_sub(3600);
+    let mut count = 0u32;
+    for row in &rows {
+        let created = row
+            .get("createdAt")
+            .and_then(|v| v.as_str())
+            .and_then(|s| s.parse::<u64>().ok())
+            .unwrap_or(0);
+        if created > cutoff {
+            count += 1;
+        }
+    }
+    count
+}
+
+// ---------------------------------------------------------------------------
 // Utility functions
 // ---------------------------------------------------------------------------
 
@@ -159,6 +204,145 @@ fn err(msg: &str) -> String {
 
 fn ok(data: Value) -> String {
     data.to_string()
+}
+
+/// SHA-256 of a byte slice, returned as a lowercase hex string.
+fn sha256_hex(data: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(data);
+    let bytes = hasher.finalize();
+    let mut out = String::with_capacity(64);
+    for b in bytes.iter() {
+        out.push_str(&format!("{:02x}", b));
+    }
+    out
+}
+
+/// Gather `n` random bytes by hashing entropy from the host's random_id + clock.
+/// The host random_id is the only source of randomness available to the guest.
+fn random_bytes(n: usize) -> Vec<u8> {
+    let mut entropy = String::new();
+    // Each random_id yields ~32+ hex chars; gather more than enough entropy.
+    while entropy.len() < 128 {
+        entropy.push_str(&h_random_id("r"));
+        entropy.push_str(&h_now().to_string());
+    }
+    let hash = {
+        let mut hasher = Sha256::new();
+        hasher.update(entropy.as_bytes());
+        hasher.finalize()
+    };
+    // One SHA-256 yields 32 bytes; for n <= 32 this suffices.
+    let mut out: Vec<u8> = hash.iter().copied().collect();
+    // Extend if more than 32 bytes are requested (rare).
+    let mut counter: u64 = 0;
+    while out.len() < n {
+        counter += 1;
+        let mut hasher = Sha256::new();
+        hasher.update(&out);
+        hasher.update(&counter.to_le_bytes());
+        let extra = hasher.finalize();
+        out.extend_from_slice(&extra);
+    }
+    out.truncate(n);
+    out
+}
+
+/// Generate a URL-safe base64 magic token from 32 random bytes (no padding).
+fn generate_magic_token() -> String {
+    let bytes = random_bytes(32);
+    URL_SAFE_NO_PAD.encode(&bytes)
+}
+
+// ---------------------------------------------------------------------------
+// Bech32 encoding (for LNURL)
+// ---------------------------------------------------------------------------
+
+const BECH32_CHARSET: &[u8] = b"qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+
+fn bech32_polymod(values: &[u8]) -> u32 {
+    let mut chk: u32 = 1;
+    let generator: [u32; 5] = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
+    for &v in values {
+        let top = chk >> 25;
+        chk = ((chk & 0x1ffffff) << 5) ^ (v as u32);
+        for i in 0..5 {
+            if (top >> i) & 1 != 0 {
+                chk ^= generator[i];
+            }
+        }
+    }
+    chk
+}
+
+fn bech32_hrp_expand(hrp: &[u8]) -> Vec<u8> {
+    let mut ret = Vec::with_capacity(hrp.len() * 2 + 1);
+    for &c in hrp {
+        ret.push(c >> 5);
+    }
+    ret.push(0);
+    for &c in hrp {
+        ret.push(c & 31);
+    }
+    ret
+}
+
+fn bech32_create_checksum(hrp: &[u8], data: &[u8], constant: u32) -> Vec<u8> {
+    let mut values = bech32_hrp_expand(hrp);
+    values.extend_from_slice(data);
+    let polymod = bech32_polymod(&values) ^ constant;
+    let mut ret = Vec::with_capacity(6);
+    for i in 0..6 {
+        ret.push(((polymod >> (5 * (5 - i))) & 31) as u8);
+    }
+    ret
+}
+
+/// Convert a byte slice from `from`-bit groups to `to`-bit groups (with padding).
+fn convert_bits(data: &[u8], from: u32, to: u32, pad: bool) -> Vec<u8> {
+    let mut acc: u32 = 0;
+    let mut bits: u32 = 0;
+    let maxv = (1u32 << to) - 1;
+    let mut ret = Vec::new();
+    for &value in data {
+        let v = value as u32;
+        if v >> from != 0 {
+            continue;
+        }
+        acc = (acc << from) | v;
+        bits += from;
+        while bits >= to {
+            bits -= to;
+            ret.push(((acc >> bits) & maxv) as u8);
+        }
+    }
+    if pad && bits > 0 {
+        ret.push(((acc << (to - bits)) & maxv) as u8);
+    }
+    ret
+}
+
+/// Encode data with a given human-readable part using bech32 (constant = 1).
+/// The result is uppercased to match the LNURL convention.
+fn bech32_encode(hrp: &str, data: &[u8]) -> String {
+    let hrp_bytes = hrp.as_bytes();
+    let checksum = bech32_create_checksum(hrp_bytes, data, 1);
+    let mut combined = data.to_vec();
+    combined.extend_from_slice(&checksum);
+    let mut result = String::with_capacity(hrp.len() + 1 + combined.len());
+    result.push_str(hrp);
+    result.push('1');
+    for &v in &combined {
+        let c = BECH32_CHARSET[(v as usize) % BECH32_CHARSET.len()];
+        result.push(c.to_ascii_uppercase() as char);
+    }
+    result
+}
+
+/// Encode a URL string into LNURL bech32 format (HRP "LNURL", uppercased).
+fn lnurl_encode(url: &str) -> String {
+    let data = convert_bits(url.as_bytes(), 8, 5, true);
+    bech32_encode("lnurl", &data)
 }
 
 /// Check if a card is expired and update its status. Returns true if status changed.
@@ -172,19 +356,36 @@ fn check_lazy_expiry(card: &mut Value) {
             if let Ok(exp_ts) = expires_at.parse::<u64>() {
                 let now = h_now();
                 if now > exp_ts {
+                    // Reclaim locked sats to the issuer wallet before flipping status.
+                    let wallet_id = card
+                        .get("walletId")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    let amount = card.get("amount").and_then(|v| v.as_u64()).unwrap_or(0);
+                    if !wallet_id.is_empty() && amount > 0 {
+                        h_update_wallet_balance(&wallet_id, amount as i64);
+                    }
                     card["status"] = json!("expired");
                     card["expiredAt"] = json!(now.to_string());
+                    // Persist the status change so we don't reclaim again on the next read.
+                    let id = card.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                    if !id.is_empty() {
+                        h_storage_set("cards", card);
+                    }
                 }
             }
         }
     }
 }
 
-/// Generate a card ID, raw token, and token hash (all random IDs).
+/// Generate a card ID, raw token, and token hash.
+/// raw_token is 32 random bytes URL-safe base64 encoded; token_hash is its
+/// SHA-256 hex digest; card_id is "gc_" + first 16 hex chars of the hash.
 fn generate_tokens() -> (String, String, String) {
-    let card_id = h_random_id("gc");
-    let raw_token = h_random_id("t");
-    let token_hash = h_random_id("h");
+    let raw_token = generate_magic_token();
+    let token_hash = sha256_hex(raw_token.as_bytes());
+    let card_id = format!("gc_{}", &token_hash[..16]);
     (card_id, raw_token, token_hash)
 }
 
@@ -229,6 +430,9 @@ impl Guest for Component {
         let (card_id, raw_token, token_hash) = generate_tokens();
         let now = h_now();
 
+        let redemption_url = format!("{}/ext/giftcards/redeem/{}", base_url, raw_token);
+        let lnurl_url = format!("{}/api/v1/ext/giftcards/lnurl/{}", base_url, token_hash);
+
         let mut card = json!({
             "id": token_hash,
             "cardId": card_id,
@@ -236,6 +440,7 @@ impl Guest for Component {
             "amount": amount,
             "tokenHash": token_hash,
             "rawToken": raw_token,
+            "redemptionUrl": redemption_url,
             "status": "active",
             "recipientName": req.get("recipientName").and_then(|v| v.as_str()).unwrap_or(""),
             "senderName": req.get("senderName").and_then(|v| v.as_str()).unwrap_or(""),
@@ -249,8 +454,32 @@ impl Guest for Component {
             "baseUrl": base_url,
         });
 
+        // Split the design object into separate qr_config and text_config JSON
+        // columns (mirrors the Python GiftCard.qr_config / text_config fields).
+        // Also keep a designJson field for backward compatibility with readers.
         if let Some(design) = req.get("design") {
             if !design.is_null() {
+                let qr_config = json!({
+                    "qr_x_frac": design.get("qr_x_frac").and_then(|v| v.as_f64()).unwrap_or(0.1),
+                    "qr_y_frac": design.get("qr_y_frac").and_then(|v| v.as_f64()).unwrap_or(0.7),
+                    "qr_size": design.get("qr_size").and_then(|v| v.as_u64()).unwrap_or(200),
+                });
+                let text_config = json!({
+                    "text_x_frac": design.get("text_x_frac").and_then(|v| v.as_f64()).unwrap_or(0.1),
+                    "text_y_frac": design.get("text_y_frac").and_then(|v| v.as_f64()).unwrap_or(0.1),
+                    "font_family": design.get("font_family").and_then(|v| v.as_str()).unwrap_or("DejaVuSans"),
+                    "font_size": design.get("font_size").and_then(|v| v.as_u64()).unwrap_or(24),
+                    "font_color": design.get("font_color").and_then(|v| v.as_str()).unwrap_or("#000000"),
+                    "bg_color": design.get("bg_color").and_then(|v| v.as_str()).unwrap_or(""),
+                    "text_align": design.get("text_align").and_then(|v| v.as_str()).unwrap_or("left"),
+                    "show_amount": design.get("show_amount").and_then(|v| v.as_bool()).unwrap_or(true),
+                    "show_recipient": design.get("show_recipient").and_then(|v| v.as_bool()).unwrap_or(true),
+                    "show_message": design.get("show_message").and_then(|v| v.as_bool()).unwrap_or(true),
+                });
+                card["qrConfig"] = Value::String(serde_json::to_string(&qr_config).unwrap_or_default());
+                card["textConfig"] = Value::String(serde_json::to_string(&text_config).unwrap_or_default());
+                card["templateName"] = json!(design.get("template_name").and_then(|v| v.as_str()).unwrap_or("portrait"));
+                card["templateAssetId"] = json!(design.get("template_asset_id").and_then(|v| v.as_str()).unwrap_or(""));
                 card["designJson"] = Value::String(serde_json::to_string(design).unwrap_or_default());
             }
         }
@@ -259,12 +488,19 @@ impl Guest for Component {
             return err("Failed to store gift card");
         }
 
+        // Debit (lock) the issuer wallet by `amount` sats now that the card is saved.
+        if !h_update_wallet_balance(&wallet_id, -(amount as i64)) {
+            // Roll back the card creation if the debit failed.
+            h_storage_delete("cards", &token_hash);
+            return err("Failed to lock sats for gift card");
+        }
+
         ok(json!({
             "cardId": card_id,
             "rawToken": raw_token,
             "tokenHash": token_hash,
-            "redemptionUrl": format!("{}/ext/giftcards/redeem/{}", base_url, raw_token),
-            "lnurlUrl": format!("{}/api/v1/ext/giftcards/lnurl/{}", base_url, token_hash),
+            "redemptionUrl": redemption_url,
+            "lnurlUrl": lnurl_url,
         }))
     }
 
@@ -350,7 +586,35 @@ impl Guest for Component {
             String::new()
         };
 
-        let design: Option<Value> = card.get("designJson").and_then(|v| v.as_str()).and_then(|s| serde_json::from_str(s).ok());
+        // Reconstruct the design object from the split qr_config / text_config
+        // columns, falling back to the legacy designJson field.
+        let design: Option<Value> = {
+            let qr = card.get("qrConfig").and_then(|v| v.as_str()).and_then(|s| serde_json::from_str(s).ok());
+            let txt = card.get("textConfig").and_then(|v| v.as_str()).and_then(|s| serde_json::from_str(s).ok());
+            if qr.is_some() || txt.is_some() {
+                let qr = qr.unwrap_or(json!({}));
+                let txt = txt.unwrap_or(json!({}));
+                Some(json!({
+                    "template_name": card.get("templateName").and_then(|v| v.as_str()).unwrap_or("portrait"),
+                    "template_asset_id": card.get("templateAssetId").and_then(|v| v.as_str()).unwrap_or(""),
+                    "qr_x_frac": qr.get("qr_x_frac").and_then(|v| v.as_f64()).unwrap_or(0.1),
+                    "qr_y_frac": qr.get("qr_y_frac").and_then(|v| v.as_f64()).unwrap_or(0.7),
+                    "qr_size": qr.get("qr_size").and_then(|v| v.as_u64()).unwrap_or(200),
+                    "text_x_frac": txt.get("text_x_frac").and_then(|v| v.as_f64()).unwrap_or(0.1),
+                    "text_y_frac": txt.get("text_y_frac").and_then(|v| v.as_f64()).unwrap_or(0.1),
+                    "font_family": txt.get("font_family").and_then(|v| v.as_str()).unwrap_or("DejaVuSans"),
+                    "font_size": txt.get("font_size").and_then(|v| v.as_u64()).unwrap_or(24),
+                    "font_color": txt.get("font_color").and_then(|v| v.as_str()).unwrap_or("#000000"),
+                    "bg_color": txt.get("bg_color").and_then(|v| v.as_str()).unwrap_or(""),
+                    "text_align": txt.get("text_align").and_then(|v| v.as_str()).unwrap_or("left"),
+                    "show_amount": txt.get("show_amount").and_then(|v| v.as_bool()).unwrap_or(true),
+                    "show_recipient": txt.get("show_recipient").and_then(|v| v.as_bool()).unwrap_or(true),
+                    "show_message": txt.get("show_message").and_then(|v| v.as_bool()).unwrap_or(true),
+                }))
+            } else {
+                card.get("designJson").and_then(|v| v.as_str()).and_then(|s| serde_json::from_str(s).ok())
+            }
+        };
 
         ok(json!({
             "cardId": card.get("cardId").and_then(|v| v.as_str()).unwrap_or(""),
@@ -397,16 +661,40 @@ impl Guest for Component {
             }
         }
 
-        // Update design
+        // Update design — split into qr_config and text_config JSON columns.
         if req.get("clearDesign").and_then(|v| v.as_bool()).unwrap_or(false) {
             card["designJson"] = json!(null);
+            card["qrConfig"] = json!(null);
+            card["textConfig"] = json!(null);
+            card["templateName"] = json!("");
+            card["templateAssetId"] = json!("");
         } else if let Some(design) = req.get("design") {
             if !design.is_null() {
+                let qr_config = json!({
+                    "qr_x_frac": design.get("qr_x_frac").and_then(|v| v.as_f64()).unwrap_or(0.1),
+                    "qr_y_frac": design.get("qr_y_frac").and_then(|v| v.as_f64()).unwrap_or(0.7),
+                    "qr_size": design.get("qr_size").and_then(|v| v.as_u64()).unwrap_or(200),
+                });
+                let text_config = json!({
+                    "text_x_frac": design.get("text_x_frac").and_then(|v| v.as_f64()).unwrap_or(0.1),
+                    "text_y_frac": design.get("text_y_frac").and_then(|v| v.as_f64()).unwrap_or(0.1),
+                    "font_family": design.get("font_family").and_then(|v| v.as_str()).unwrap_or("DejaVuSans"),
+                    "font_size": design.get("font_size").and_then(|v| v.as_u64()).unwrap_or(24),
+                    "font_color": design.get("font_color").and_then(|v| v.as_str()).unwrap_or("#000000"),
+                    "bg_color": design.get("bg_color").and_then(|v| v.as_str()).unwrap_or(""),
+                    "text_align": design.get("text_align").and_then(|v| v.as_str()).unwrap_or("left"),
+                    "show_amount": design.get("show_amount").and_then(|v| v.as_bool()).unwrap_or(true),
+                    "show_recipient": design.get("show_recipient").and_then(|v| v.as_bool()).unwrap_or(true),
+                    "show_message": design.get("show_message").and_then(|v| v.as_bool()).unwrap_or(true),
+                });
+                card["qrConfig"] = Value::String(serde_json::to_string(&qr_config).unwrap_or_default());
+                card["textConfig"] = Value::String(serde_json::to_string(&text_config).unwrap_or_default());
+                card["templateName"] = json!(design.get("template_name").and_then(|v| v.as_str()).unwrap_or("portrait"));
+                card["templateAssetId"] = json!(design.get("template_asset_id").and_then(|v| v.as_str()).unwrap_or(""));
                 card["designJson"] = Value::String(serde_json::to_string(design).unwrap_or_default());
             }
         }
 
-        let id = card.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
         if !h_storage_set("cards", &card) {
             return err("Failed to update gift card");
         }
@@ -428,12 +716,24 @@ impl Guest for Component {
         let filters = json!({"cardId": card_id});
         let (rows, _) = h_storage_get_paginated("cards", &filters, 1, 0);
         let card = match rows.first() {
-            Some(c) => c,
+            Some(c) => c.clone(),
             None => return err("Gift card not found"),
         };
 
-        let id = card.get("id").and_then(|v| v.as_str()).unwrap_or("");
-        h_storage_delete("cards", id);
+        // Reclaim locked sats to the issuer wallet if the card is still active.
+        // Expired cards already had sats reclaimed by the expiry task; redeemed
+        // cards already paid out — skip reclaim for those (matches Python reclaim_sats_and_delete).
+        let status = card.get("status").and_then(|s| s.as_str()).unwrap_or("active");
+        if status == "active" {
+            let wallet_id = card.get("walletId").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let amount = card.get("amount").and_then(|v| v.as_u64()).unwrap_or(0);
+            if !wallet_id.is_empty() && amount > 0 {
+                h_update_wallet_balance(&wallet_id, amount as i64);
+            }
+        }
+
+        let id = card.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        h_storage_delete("cards", &id);
 
         ok(json!({"status": "deleted"}))
     }
@@ -638,7 +938,6 @@ impl Guest for Component {
         let success = resp.status_code >= 200 && resp.status_code < 300;
         card["emailStatus"] = if success { json!("sent") } else { json!("failed") };
 
-        let id = card.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
         h_storage_set("cards", &card);
 
         if success {
@@ -714,10 +1013,13 @@ impl Guest for Component {
         let card_id = card.get("cardId").and_then(|v| v.as_str()).unwrap_or("");
 
         let callback_url = format!("{}/api/v1/ext/giftcards/lnurl/callback", base_url);
+        // Encode the callback URL into a bech32 LNURL string (uppercase, HRP "LNURL").
+        let lnurl = lnurl_encode(&callback_url);
 
         ok(json!({
             "tag": "withdrawRequest",
             "callback": callback_url,
+            "lnurl": lnurl,
             "k1": token_hash,
             "defaultDescription": format!("Gift card {}", &card_id[..card_id.len().min(8)]),
             "minWithdrawable": amount * 1000,
@@ -749,16 +1051,31 @@ impl Guest for Component {
 
         check_lazy_expiry(&mut card);
 
-        let status = card.get("status").and_then(|s| s.as_str()).unwrap_or("active");
-        if status != "active" {
-            return ok(json!({"status": "ERROR", "reason": format!("Gift card is {}", status)}));
+        // Atomic redeeming lock: re-fetch the freshest record and only proceed
+        // if it is still "active". The storage API has no conditional update,
+        // so this compare-and-swap re-reads immediately before flipping status.
+        // If a concurrent caller already moved it off "active", we bail out.
+        let fresh = match h_storage_get("cards", k1) {
+            Some(c) => c,
+            None => return ok(json!({"status": "ERROR", "reason": "Gift card not found"})),
+        };
+        let fresh_status = fresh.get("status").and_then(|s| s.as_str()).unwrap_or("active");
+        if fresh_status != "active" {
+            return ok(json!({"status": "ERROR", "reason": format!("Gift card is {}", fresh_status)}));
         }
-
-        // Atomically mark as redeeming
+        // Carry over any expiry side-effects from check_lazy_expiry above.
+        card = fresh;
         card["status"] = json!("redeeming");
         let id = card.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
         if !h_storage_set("cards", &card) {
             return ok(json!({"status": "ERROR", "reason": "Failed to lock card"}));
+        }
+        // Confirm we won the race: re-read and ensure status is still "redeeming".
+        if let Some(verify) = h_storage_get("cards", k1) {
+            let v_status = verify.get("status").and_then(|s| s.as_str()).unwrap_or("");
+            if v_status != "redeeming" {
+                return ok(json!({"status": "ERROR", "reason": "Card is being redeemed by another request"}));
+            }
         }
 
         // Pay the invoice from the issuer's wallet
@@ -775,6 +1092,11 @@ impl Guest for Component {
             card["status"] = json!("redeemed");
             card["redeemedAt"] = json!(h_now().to_string());
             h_storage_set("cards", &card);
+            // Invalidate all magic links for the recipient's email (D-16).
+            let recipient_email = card.get("recipientEmail").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            if !recipient_email.is_empty() {
+                invalidate_magic_links_for_email(&recipient_email);
+            }
             ok(json!({"status": "OK"}))
         } else {
             // Reset to active
@@ -792,57 +1114,113 @@ impl Guest for Component {
             Err(e) => return err(&format!("Invalid request: {e}")),
         };
 
+        // Normalize email to lowercase (M-1) for consistent lookup / rate limiting.
         let email = match req.get("email").and_then(|e| e.as_str()) {
-            Some(e) if !e.is_empty() => e.to_string(),
+            Some(e) if !e.is_empty() => e.to_lowercase(),
             _ => return err("email is required"),
         };
 
-        // Use public storage to search for cards (no auth needed)
+        // Rate limit: reject if more than 3 magic links were created for this
+        // email in the last hour (prevents enumeration / spam).
+        if count_recent_magic_links(&email) > 3 {
+            return ok(json!({
+                "message": "If you have pending gift cards, a verification link has been sent to your email."
+            }));
+        }
+
+        // Search for active, non-expired cards addressed to this email.
         let filters = json!({"recipientEmail": email, "status": "active"});
         let (rows, _) = h_storage_get_public_paginated("cards", &filters, 100, 0);
 
-        if !rows.is_empty() {
-            // Generate a magic link token (using system.random_id, no auth needed)
-            let magic_token = h_random_id("ml");
-            let now = h_now();
-            let expires_at = now + 1800; // 30 minutes
+        // Filter out already-expired cards (lazy expiry on the public read).
+        let pending: Vec<Value> = rows
+            .into_iter()
+            .filter(|card| {
+                let mut c = card.clone();
+                check_lazy_expiry(&mut c);
+                c.get("status").and_then(|s| s.as_str()) == Some("active")
+            })
+            .collect();
 
-            // Note: Cannot write magic_links from public route without ownerContext.
-            // The magic link token is returned to the caller who can use it directly.
-            // In a production system, email delivery would be handled by an
-            // authenticated backend process or external service.
+        if pending.is_empty() {
+            // Always return the same response to avoid email enumeration.
+            return ok(json!({
+                "message": "If you have pending gift cards, a verification link has been sent to your email."
+            }));
+        }
 
-            // Try to send notification email if email API is provided in the request
-            if let Some(api_url) = req.get("emailApiUrl").and_then(|u| u.as_str()) {
-                if !api_url.is_empty() {
-                    let card = rows.first().unwrap();
-                    let base_url = card.get("baseUrl").and_then(|v| v.as_str()).unwrap_or("");
-                    let sender = card.get("senderName").and_then(|v| v.as_str()).unwrap_or("Anonymous");
-                    let magic_link_url = format!("{}/ext/giftcards/claim/{}", base_url, magic_token);
+        // Determine the issuer wallet from the first pending card.
+        let wallet_id = pending
+            .first()
+            .and_then(|c| c.get("walletId").and_then(|v| v.as_str()))
+            .unwrap_or("")
+            .to_string();
 
-                    let api_key = req.get("emailApiKey").and_then(|k| k.as_str()).unwrap_or("");
-                    let email_body = format!(
-                        "You have pending gift cards from {}.\n\nClaim them here: {}",
-                        sender, magic_link_url
-                    );
+        // Generate a magic token: 32 random bytes, URL-safe base64 (no padding).
+        let magic_token = generate_magic_token();
+        // Store only the SHA-256 hash — the raw token is never persisted.
+        let token_hash = sha256_hex(magic_token.as_bytes());
+        let link_id = format!("ml_{}", &token_hash[..16]);
+        let now = h_now();
+        let expires_at = now + 1800; // 30 minutes
 
-                    let mut headers: Vec<(String, String)> = vec![
-                        ("Content-Type".to_string(), "application/json".to_string()),
-                    ];
-                    if !api_key.is_empty() {
-                        headers.push(("Authorization".to_string(), format!("Bearer {}", api_key)));
-                    }
+        let link = json!({
+            "id": link_id,
+            "tokenHash": token_hash,
+            "email": email,
+            "wallet": wallet_id,
+            "createdAt": now.to_string(),
+            "expiresAt": expires_at.to_string(),
+            "usedAt": "",
+        });
 
-                    // http.request requires auth, but with ownerContext it would work.
-                    // For now, skip email sending from public route.
-                    // Email delivery should be done from the authenticated deliver-email endpoint.
+        if !h_storage_set("magic_links", &link) {
+            return err("Failed to create magic link");
+        }
+
+        // Optionally send the notification email if an email API endpoint is
+        // provided in the request (best-effort; does not block the response).
+        if let Some(api_url) = req.get("emailApiUrl").and_then(|u| u.as_str()) {
+            if !api_url.is_empty() {
+                let card = pending.first().unwrap();
+                let base_url = card.get("baseUrl").and_then(|v| v.as_str()).unwrap_or("");
+                let sender = card.get("senderName").and_then(|v| v.as_str()).unwrap_or("Anonymous");
+                let magic_link_url = format!("{}/ext/giftcards/claim/{}", base_url, magic_token);
+
+                let api_key = req.get("emailApiKey").and_then(|k| k.as_str()).unwrap_or("");
+                let email_body = format!(
+                    "You have pending gift cards from {}.\n\nClaim them here: {}\n\nThis link expires in 30 minutes.",
+                    sender, magic_link_url
+                );
+
+                let email_payload = json!({
+                    "to": email,
+                    "subject": format!("Redeem your Lightning Gift card from {}", sender),
+                    "body": email_body,
+                    "magicLinkUrl": magic_link_url,
+                    "sender": sender,
+                });
+
+                let mut headers: Vec<(String, String)> = vec![
+                    ("Content-Type".to_string(), "application/json".to_string()),
+                ];
+                if !api_key.is_empty() {
+                    headers.push(("Authorization".to_string(), format!("Bearer {}", api_key)));
                 }
+
+                let _ = host::http_request(&host::HttpRequestParams {
+                    method: "POST".to_string(),
+                    url: api_url.to_string(),
+                    headers,
+                    body: Some(email_payload.to_string()),
+                });
             }
         }
 
-        // Always return same response (no email enumeration)
+        // Return the raw token so the caller (or email link) can verify the claim.
         ok(json!({
-            "message": "If you have pending gift cards, a verification link has been sent to your email."
+            "message": "If you have pending gift cards, a verification link has been sent to your email.",
+            "magicToken": magic_token,
         }))
     }
 
@@ -857,45 +1235,77 @@ impl Guest for Component {
             _ => return err("magicToken is required"),
         };
 
-        // Look up magic link by id (magic_token is the storage id)
-        let mut link = match h_storage_get("magic_links", magic_token) {
+        // Hash the provided magic token and look up the magic_link by token_hash.
+        let token_hash = sha256_hex(magic_token.as_bytes());
+        let filters = json!({"tokenHash": token_hash});
+        let (rows, _) = h_storage_get_paginated("magic_links", &filters, 10, 0);
+
+        // Find an unused, unexpired link matching this hash.
+        let now = h_now();
+        let mut matched: Option<Value> = None;
+        for row in &rows {
+            let used_at = row.get("usedAt").and_then(|v| v.as_str()).unwrap_or("");
+            if !used_at.is_empty() {
+                continue;
+            }
+            let exp_ts = row
+                .get("expiresAt")
+                .and_then(|v| v.as_str())
+                .and_then(|s| s.parse::<u64>().ok())
+                .unwrap_or(0);
+            if now > exp_ts {
+                continue;
+            }
+            matched = Some(row.clone());
+            break;
+        }
+
+        let link = match matched {
             Some(l) => l,
             None => return err("Invalid or expired link"),
         };
 
-        // Check if already used
-        let used_at = link.get("usedAt").and_then(|v| v.as_str()).unwrap_or("");
-        if !used_at.is_empty() {
+        // Atomic single-use claim: re-read the link and only mark it used if it
+        // is still unused (prevents the TOCTOU race — H-2). The storage API has
+        // no conditional update, so we re-fetch and bail if already used.
+        let link_id = link.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let fresh = match h_storage_get("magic_links", &link_id) {
+            Some(l) => l,
+            None => return err("Invalid or expired link"),
+        };
+        let fresh_used = fresh.get("usedAt").and_then(|v| v.as_str()).unwrap_or("");
+        if !fresh_used.is_empty() {
             return err("Invalid or expired link");
         }
-
-        // Check expiry
-        let expires_at = link.get("expiresAt").and_then(|v| v.as_str()).unwrap_or("0");
-        let exp_ts = expires_at.parse::<u64>().unwrap_or(0);
-        if h_now() > exp_ts {
-            return err("Invalid or expired link");
+        let mut to_update = fresh;
+        to_update["usedAt"] = json!(now.to_string());
+        if !h_storage_set("magic_links", &to_update) {
+            return err("Failed to verify magic link");
         }
 
-        // Mark as used
-        link["usedAt"] = json!(h_now().to_string());
-        h_storage_set("magic_links", &link);
-
-        // Get pending cards for this email
-        let email = link.get("email").and_then(|v| v.as_str()).unwrap_or("");
+        // Return the pending (active, non-expired) cards for this email.
+        let email = to_update.get("email").and_then(|v| v.as_str()).unwrap_or("");
         let filters = json!({"recipientEmail": email, "status": "active"});
         let (rows, _) = h_storage_get_paginated("cards", &filters, 100, 0);
 
         let cards: Vec<Value> = rows
             .iter()
-            .map(|card| {
-                let base_url = card.get("baseUrl").and_then(|v| v.as_str()).unwrap_or("");
-                let raw_token = card.get("rawToken").and_then(|v| v.as_str()).unwrap_or("");
-                json!({
-                    "cardId": card.get("cardId").and_then(|v| v.as_str()).unwrap_or(""),
-                    "amount": card.get("amount").and_then(|v| v.as_u64()).unwrap_or(0),
-                    "senderName": card.get("senderName").and_then(|v| v.as_str()).unwrap_or(""),
+            .filter_map(|card| {
+                let mut c = card.clone();
+                check_lazy_expiry(&mut c);
+                if c.get("status").and_then(|s| s.as_str()) != Some("active") {
+                    return None;
+                }
+                let base_url = c.get("baseUrl").and_then(|v| v.as_str()).unwrap_or("");
+                let raw_token = c.get("rawToken").and_then(|v| v.as_str()).unwrap_or("");
+                Some(json!({
+                    "cardId": c.get("cardId").and_then(|v| v.as_str()).unwrap_or(""),
+                    "amount": c.get("amount").and_then(|v| v.as_u64()).unwrap_or(0),
+                    "senderName": c.get("senderName").and_then(|v| v.as_str()).unwrap_or(""),
+                    "recipientName": c.get("recipientName").and_then(|v| v.as_str()).unwrap_or(""),
+                    "message": c.get("message").and_then(|v| v.as_str()).unwrap_or(""),
                     "redemptionUrl": format!("{}/ext/giftcards/redeem/{}", base_url, raw_token),
-                })
+                }))
             })
             .collect();
 

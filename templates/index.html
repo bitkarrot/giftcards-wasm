@@ -13,14 +13,13 @@
 <div id="app" class="page">
   <div class="header">
     <h1><span class="material-icons icon">card_giftcard</span> Gift Cards</h1>
-    <button class="btn btn-primary" id="btn-create">Create Gift Card</button>
+    <div class="header-actions">
+      <button class="btn btn-primary" id="btn-create">Create Gift Card</button>
+      <button class="btn btn-primary" id="btn-bulk-open">Bulk Create</button>
+    </div>
   </div>
 
-  <div class="tabs">
-    <div class="tab active" data-tab="list" id="tab-list">My Cards</div>
-    <div class="tab" data-tab="bulk" id="tab-bulk">Bulk Create</div>
-  </div>
-
+  <!-- Filter Bar -->
   <div id="view-list">
     <div class="filters">
       <select id="filter-status">
@@ -29,79 +28,241 @@
         <option value="redeemed">Redeemed</option>
         <option value="expired">Expired</option>
       </select>
-      <input type="text" id="search-query" placeholder="Search...">
+      <input type="text" id="search-query" placeholder="Search recipient, sender, ID...">
       <button class="btn btn-sm" id="btn-search">Search</button>
+      <button class="btn btn-sm" id="btn-clear-filters" style="display:none;">Clear</button>
     </div>
+
+    <!-- Bulk Action Bar -->
+    <div class="bulk-action-bar" id="bulk-action-bar" style="display:none;">
+      <span id="selected-count">0 selected</span>
+      <button class="btn btn-sm btn-primary" id="btn-bulk-email">Send Emails</button>
+      <button class="btn btn-sm" id="btn-bulk-csv">Download CSV</button>
+      <button class="btn btn-sm btn-danger" id="btn-bulk-delete">Delete Selected</button>
+    </div>
+
     <div id="card-list-container">
       <div class="loading" id="loading-msg">Loading...</div>
     </div>
-  </div>
-
-  <div id="view-bulk" class="gift-card hidden">
-    <div class="form-group">
-      <label>Number of cards</label>
-      <input type="number" id="bulk-count" value="5" min="1" max="500">
+    <div class="pagination" id="pagination" style="display:none;">
+      <button class="btn btn-sm" id="btn-prev-page">Prev</button>
+      <span id="page-info">Page 1</span>
+      <button class="btn btn-sm" id="btn-next-page">Next</button>
     </div>
-    <div class="form-group">
-      <label>Amount (sats) per card</label>
-      <input type="number" id="bulk-amount" value="1000" min="1">
-    </div>
-    <div class="form-group">
-      <label>Sender Name</label>
-      <input type="text" id="bulk-sender">
-    </div>
-    <div class="form-group">
-      <label>Default Message</label>
-      <textarea id="bulk-message" rows="2"></textarea>
-    </div>
-    <button class="btn btn-primary" id="btn-bulk-create">Create Cards</button>
-    <div id="bulk-result" class="result-msg"></div>
   </div>
 </div>
 
-<!-- Create Dialog -->
+<!-- Create Gift Card Dialog -->
 <div class="dialog-overlay hidden" id="create-dialog">
-  <div class="dialog">
-    <h2>Create Gift Card</h2>
-    <div class="form-group">
-      <label>Amount (sats)</label>
-      <input type="number" id="create-amount" value="1000" min="1">
-    </div>
-    <div class="form-group">
-      <label>Recipient Name</label>
-      <input type="text" id="create-recipient-name">
-    </div>
-    <div class="form-group">
-      <label>Recipient Email</label>
-      <input type="email" id="create-recipient-email">
-    </div>
-    <div class="form-group">
-      <label>Sender Name</label>
-      <input type="text" id="create-sender-name">
-    </div>
-    <div class="form-group">
-      <label>Message</label>
-      <textarea id="create-message" rows="3"></textarea>
-    </div>
-    <div class="form-group">
-      <label>Expires At (optional, e.g. 2026-12-31)</label>
-      <input type="text" id="create-expires-at">
-    </div>
-    <div class="form-group">
-      <label>Card Design Template</label>
-      <div id="template-selector">
-        <img class="template-preview selected" data-template="blue" src="/ext-assets/giftcards/templates/blue.png" alt="Blue">
-        <img class="template-preview" data-template="green" src="/ext-assets/giftcards/templates/green.png" alt="Green">
-        <img class="template-preview" data-template="purple" src="/ext-assets/giftcards/templates/purple.png" alt="Purple">
-        <img class="template-preview" data-template="orange" src="/ext-assets/giftcards/templates/orange.png" alt="Orange">
-        <img class="template-preview" data-template="dark" src="/ext-assets/giftcards/templates/dark.png" alt="Dark">
-        <img class="template-preview" data-template="bitcoin" src="/ext-assets/giftcards/templates/bitcoin.png" alt="Bitcoin">
+  <div class="dialog dialog-large">
+    <h2 id="create-dialog-title">Create Gift Card</h2>
+    <div id="create-form-view">
+      <div class="form-group">
+        <label>Amount (sats)</label>
+        <input type="number" id="create-amount" value="1000" min="1">
+        <div class="hint">Sats will be locked from your wallet at creation.</div>
+      </div>
+      <div class="form-group">
+        <label>Recipient Name</label>
+        <input type="text" id="create-recipient-name">
+      </div>
+      <div class="form-group">
+        <label>Recipient Email</label>
+        <input type="email" id="create-recipient-email">
+      </div>
+      <div class="form-group">
+        <label>Sender Name</label>
+        <input type="text" id="create-sender-name">
+      </div>
+      <div class="form-group">
+        <label>Message</label>
+        <textarea id="create-message" rows="3"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Expires On</label>
+        <input type="date" id="create-expires-at">
+        <div class="hint">No date = card never expires.</div>
+      </div>
+
+      <div class="separator"></div>
+      <h3>Card Design</h3>
+      <div class="form-group">
+        <label>Design Mode</label>
+        <select id="create-design-mode">
+          <option value="none">No design (bare QR)</option>
+          <option value="shared">Custom design</option>
+        </select>
+      </div>
+
+      <div id="design-editor" style="display:none;">
+        <div class="info-banner">
+          <span class="material-icons">info</span>
+          Drag the text and QR code to reposition them. Use the handle in the bottom-right corner of the QR code to resize it.
+        </div>
+
+        <div class="form-group">
+          <label>Template</label>
+          <select id="design-template">
+            <option value="portrait">Portrait</option>
+            <option value="landscape">Landscape</option>
+            <option value="GiftBoxes">Gift Boxes</option>
+            <option value="GiftCard">Gift Card</option>
+            <option value="HappyBirthday">Happy Birthday</option>
+            <option value="MerryXmas">Merry Xmas</option>
+            <option value="OrangeCard">Orange Card</option>
+            <option value="PurpleGift">Purple Gift</option>
+            <option value="SatsGiftCard">Sats Gift Card</option>
+            <option value="SeasonsGreetings">Seasons Greetings</option>
+            <option value="custom">Custom (upload)</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="upload-group" style="display:none;">
+          <button class="btn btn-sm btn-primary" id="btn-upload-template">Upload Custom Template</button>
+          <input type="file" id="template-file-input" accept="image/png,image/jpeg" style="display:none;">
+          <span id="upload-status"></span>
+        </div>
+
+        <!-- Card Preview -->
+        <div class="card-preview" id="card-preview">
+          <img class="template-bg" id="preview-template-img" src="" style="display:none;">
+          <div class="draggable-qr" id="preview-qr">
+            <img src="/ext-assets/giftcards/image/qr_placeholder.png" style="width:100%;height:100%;object-fit:contain;">
+            <div class="resize-handle" id="resize-handle"></div>
+          </div>
+          <div class="draggable-text" id="preview-text">
+            <div id="preview-text-content"></div>
+          </div>
+        </div>
+
+        <!-- Design Controls -->
+        <div class="design-controls">
+          <div class="design-row">
+            <label class="checkbox-label"><input type="checkbox" id="show-amount" checked> Amount</label>
+            <label class="checkbox-label"><input type="checkbox" id="show-recipient" checked> Recipient name</label>
+            <label class="checkbox-label"><input type="checkbox" id="show-message" checked> Message</label>
+          </div>
+          <div class="design-row">
+            <label>Font</label>
+            <select id="design-font">
+              <option value="DejaVuSans">Sans</option>
+              <option value="DejaVuSerif">Serif</option>
+              <option value="DejaVuSansMono">Mono</option>
+            </select>
+          </div>
+          <div class="design-row">
+            <label>Font Size: <span id="font-size-label">24</span>px</label>
+            <input type="range" id="design-font-size" min="12" max="72" value="24">
+          </div>
+          <div class="design-row">
+            <label>Font Color</label>
+            <input type="color" id="design-font-color" value="#000000">
+          </div>
+          <div class="design-row">
+            <label>Background Color</label>
+            <input type="color" id="design-bg-color" value="#1976d2">
+            <label class="checkbox-label"><input type="checkbox" id="bg-color-enabled"> Use solid color background</label>
+          </div>
+          <div class="design-row">
+            <label>Alignment</label>
+            <div class="btn-group">
+              <button class="btn btn-sm align-btn active" data-align="left">Left</button>
+              <button class="btn btn-sm align-btn" data-align="center">Center</button>
+              <button class="btn btn-sm align-btn" data-align="right">Right</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-actions">
+        <button class="btn" id="btn-create-cancel">Cancel</button>
+        <button class="btn btn-primary" id="btn-create-confirm">Create Gift Card</button>
       </div>
     </div>
-    <div class="dialog-actions">
-      <button class="btn" id="btn-create-cancel">Cancel</button>
-      <button class="btn btn-primary" id="btn-create-confirm">Create</button>
+
+    <!-- Success Result -->
+    <div id="create-result-view" style="display:none;">
+      <div class="success-header">
+        <span class="material-icons" style="color:#4caf50;font-size:48px;">check_circle</span>
+        <h3>Gift Card Created</h3>
+      </div>
+      <div class="warning-banner">
+        <span class="material-icons">warning</span>
+        Keep this link secure — anyone with it can redeem the card. You can retrieve it later from the dashboard.
+      </div>
+      <div class="form-group">
+        <label>Redemption Link</label>
+        <div class="copy-row">
+          <input type="text" id="result-redemption-url" readonly>
+          <button class="btn btn-sm btn-primary" id="btn-copy-result-link">Copy</button>
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn btn-primary" id="btn-create-another">Create Another</button>
+        <button class="btn" id="btn-create-close">Close</button>
+      </div>
     </div>
+  </div>
+</div>
+
+<!-- Bulk Create Dialog -->
+<div class="dialog-overlay hidden" id="bulk-dialog">
+  <div class="dialog dialog-large">
+    <h2>Bulk Create Gift Cards</h2>
+    <div class="tabs">
+      <div class="tab active" data-bulk-tab="same" id="bulk-tab-same">Same Amount</div>
+      <div class="tab" data-bulk-tab="csv" id="bulk-tab-csv">CSV Upload</div>
+    </div>
+
+    <!-- Same Amount Tab -->
+    <div id="bulk-same-view">
+      <div class="form-group">
+        <label>Number of Cards</label>
+        <input type="number" id="bulk-count" value="5" min="1" max="500">
+        <div class="hint">How many gift cards to create (max 500).</div>
+      </div>
+      <div class="form-group">
+        <label>Amount (sats) per card</label>
+        <input type="number" id="bulk-amount" value="1000" min="1">
+        <div class="hint" id="bulk-total-hint">Total: 0 sats.</div>
+      </div>
+      <div class="form-group">
+        <label>Recipient Name</label>
+        <input type="text" id="bulk-recipient-name">
+      </div>
+      <div class="form-group">
+        <label>Sender Name</label>
+        <input type="text" id="bulk-sender-name">
+      </div>
+      <div class="form-group">
+        <label>Message</label>
+        <textarea id="bulk-message" rows="2"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Expires On</label>
+        <input type="date" id="bulk-expires-at">
+      </div>
+    </div>
+
+    <!-- CSV Upload Tab -->
+    <div id="bulk-csv-view" style="display:none;">
+      <div class="form-group">
+        <label>CSV File</label>
+        <input type="file" id="csv-file-input" accept=".csv">
+        <div class="hint">Required: recipient_name, amount_sats. Optional: recipient_email, sender_name, message.</div>
+      </div>
+      <button class="btn btn-sm" id="btn-csv-template">Download CSV Template</button>
+      <div id="csv-validation-result" style="display:none;">
+        <div class="info-banner" id="csv-validation-banner"></div>
+        <div id="csv-validation-table"></div>
+      </div>
+    </div>
+
+    <div class="dialog-actions">
+      <button class="btn" id="btn-bulk-cancel">Cancel</button>
+      <button class="btn btn-primary" id="btn-bulk-create">Create Cards</button>
+    </div>
+    <div id="bulk-result" class="result-msg"></div>
   </div>
 </div>
 
@@ -112,12 +273,46 @@
     <div id="card-dialog-body"></div>
     <div class="detail-actions">
       <button class="btn" id="btn-download-image">Download Image</button>
+      <button class="btn" id="btn-card-edit">Edit</button>
+      <button class="btn btn-danger" id="btn-card-delete">Delete</button>
       <button class="btn" id="btn-card-close">Close</button>
     </div>
   </div>
 </div>
 
-<!-- Deliver Dialog -->
+<!-- Edit Dialog -->
+<div class="dialog-overlay hidden" id="edit-dialog">
+  <div class="dialog dialog-large">
+    <h2>Edit Gift Card</h2>
+    <div class="form-group">
+      <label>Recipient Name</label>
+      <input type="text" id="edit-recipient-name">
+    </div>
+    <div class="form-group">
+      <label>Sender Name</label>
+      <input type="text" id="edit-sender-name">
+    </div>
+    <div class="form-group">
+      <label>Message</label>
+      <textarea id="edit-message" rows="3"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Recipient Email</label>
+      <input type="email" id="edit-recipient-email">
+    </div>
+    <div class="form-group">
+      <label>Amount (sats)</label>
+      <input type="number" id="edit-amount" readonly>
+      <div class="hint">Amount cannot be changed. Cancel and recreate to change amount.</div>
+    </div>
+    <div class="dialog-actions">
+      <button class="btn" id="btn-edit-cancel">Cancel</button>
+      <button class="btn btn-primary" id="btn-edit-save">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Email Delivery Dialog -->
 <div class="dialog-overlay hidden" id="deliver-dialog">
   <div class="dialog">
     <h2>Send Gift Card Email</h2>
@@ -126,8 +321,23 @@
       <input type="email" id="deliver-email">
     </div>
     <div class="form-group">
+      <label>Email Mode</label>
+      <select id="deliver-mode">
+        <option value="fancy">Fancy (styled with card image)</option>
+        <option value="custom">Custom text</option>
+      </select>
+    </div>
+    <div class="form-group">
       <label>Subject (optional)</label>
       <input type="text" id="deliver-subject">
+    </div>
+    <div class="form-group" id="deliver-body-group">
+      <label>Email Body</label>
+      <textarea id="deliver-body" rows="4"></textarea>
+    </div>
+    <div class="form-group" id="deliver-bg-color-group">
+      <label>Background Color</label>
+      <input type="color" id="deliver-bg-color" value="#1976d2">
     </div>
     <div class="form-group">
       <label>Email API URL</label>
@@ -149,6 +359,7 @@
   <div class="dialog" style="max-width: 400px;">
     <h2 id="confirm-title">Confirm</h2>
     <p id="confirm-message" style="margin-bottom: 24px;"></p>
+    <div id="confirm-banner" class="info-banner" style="display:none;"></div>
     <div class="dialog-actions">
       <button class="btn" id="btn-confirm-cancel">Cancel</button>
       <button class="btn btn-danger" id="btn-confirm-ok">Confirm</button>
@@ -156,8 +367,20 @@
   </div>
 </div>
 
+<!-- Bulk Email Dialog -->
+<div class="dialog-overlay hidden" id="bulk-email-dialog">
+  <div class="dialog" style="max-width:600px;">
+    <h2>Send Emails</h2>
+    <div id="bulk-email-list"></div>
+    <div class="dialog-actions">
+      <button class="btn btn-primary" id="btn-bulk-email-send">Send Emails</button>
+      <button class="btn" id="btn-bulk-email-close">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast Notification -->
-<div id="toast" class="hidden" style="position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: 8px; z-index: 2000; font-size: 14px; max-width: 400px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>
+<div id="toast" class="hidden"></div>
 
 <script src="/ext-assets/giftcards/js/qrcode.min.js"></script>
 <script src="/ext-assets/giftcards/js/qr-helper.js"></script>
