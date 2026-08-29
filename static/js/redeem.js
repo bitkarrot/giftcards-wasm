@@ -11,7 +11,7 @@
     });
   }
 
-  var API_BASE = '/api/v1/ext/giftcards';
+  var API_BASE = '/api/v1/ext/giftcards_wasm';
   function apiCall(method, path, body) {
     var fullPath = API_BASE + path;
     return window.LNbitsBridge.connect().then(function() {
@@ -19,7 +19,7 @@
     });
   }
 
-  // Extract token from URL: /ext/giftcards/redeem/{token}
+  // Extract token from URL: /ext/giftcards_wasm/redeem/{token}
   var pathParts = window.location.pathname.split('/');
   var token = '';
   for (var i = 0; i < pathParts.length; i++) {

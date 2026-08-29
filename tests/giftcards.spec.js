@@ -1,4 +1,4 @@
-// Playwright test for giftcards-wasm extension
+// Playwright test for giftcards_wasm extension
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
@@ -54,12 +54,12 @@ async function loginAndGoto(page, url) {
 }
 
 test('login and navigate to gift cards', async ({ page, request }) => {
-  await loginAndGoto(page, BASE_URL + '/ext/giftcards');
+  await loginAndGoto(page, BASE_URL + '/ext/giftcards_wasm');
   await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '01-giftcards-page.png'), fullPage: true });
 });
 
 test('create a gift card', async ({ page }) => {
-  await loginAndGoto(page, BASE_URL + '/ext/giftcards');
+  await loginAndGoto(page, BASE_URL + '/ext/giftcards_wasm');
 
   // Wait for the extension iframe to load
   await page.waitForTimeout(5000);
@@ -108,14 +108,14 @@ test('create a gift card', async ({ page }) => {
 });
 
 test('view gift card list', async ({ page, request }) => {
-  await loginAndGoto(page, BASE_URL + '/ext/giftcards');
+  await loginAndGoto(page, BASE_URL + '/ext/giftcards_wasm');
   await page.waitForTimeout(3000);
 
   await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '05-card-list.png'), fullPage: true });
 });
 
 test('delete a gift card', async ({ page }) => {
-  await loginAndGoto(page, BASE_URL + '/ext/giftcards');
+  await loginAndGoto(page, BASE_URL + '/ext/giftcards_wasm');
   await page.waitForTimeout(5000);
 
   const extFrame = page.frames().find(f => f.url().includes('ext-frame'));
@@ -145,7 +145,7 @@ test('delete a gift card', async ({ page }) => {
 });
 
 test('view gift card detail with QR', async ({ page }) => {
-  await loginAndGoto(page, BASE_URL + '/ext/giftcards');
+  await loginAndGoto(page, BASE_URL + '/ext/giftcards_wasm');
   await page.waitForTimeout(5000);
 
   const extFrame = page.frames().find(f => f.url().includes('ext-frame'));
@@ -167,7 +167,7 @@ test('view gift card detail with QR', async ({ page }) => {
 
 test('redeem page', async ({ page, request }) => {
   const token = await getAccessToken(request);
-  const cardRes = await request.post(BASE_URL + '/api/v1/ext/giftcards/cards', {
+  const cardRes = await request.post(BASE_URL + '/api/v1/ext/giftcards_wasm/cards', {
     headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
     data: { amount: 500, recipientName: 'Charlie', senderName: 'Dave', message: 'Test redeem card' },
   });
@@ -175,14 +175,14 @@ test('redeem page', async ({ page, request }) => {
   const rawToken = card.rawToken || card.tokenHash;
 
   // Navigate to redeem page (public, no auth needed)
-  await page.goto(BASE_URL + '/ext/giftcards/redeem/' + rawToken);
+  await page.goto(BASE_URL + '/ext/giftcards_wasm/redeem/' + rawToken);
   await page.waitForTimeout(5000);
 
   await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '07-redeem-page.png'), fullPage: true });
 });
 
 test('claim page', async ({ page }) => {
-  await page.goto(BASE_URL + '/ext/giftcards/claim', { waitUntil: 'domcontentloaded' }).catch(() => {});
+  await page.goto(BASE_URL + '/ext/giftcards_wasm/claim', { waitUntil: 'domcontentloaded' }).catch(() => {});
   await page.waitForTimeout(5000);
 
   await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '08-claim-page.png'), fullPage: true });

@@ -430,8 +430,8 @@ impl Guest for Component {
         let (card_id, raw_token, token_hash) = generate_tokens();
         let now = h_now();
 
-        let redemption_url = format!("{}/ext/giftcards/redeem/{}", base_url, raw_token);
-        let lnurl_url = format!("{}/api/v1/ext/giftcards/lnurl/{}", base_url, token_hash);
+        let redemption_url = format!("{}/ext/giftcards_wasm/redeem/{}", base_url, raw_token);
+        let lnurl_url = format!("{}/api/v1/ext/giftcards_wasm/lnurl/{}", base_url, token_hash);
 
         let mut card = json!({
             "id": token_hash,
@@ -581,7 +581,7 @@ impl Guest for Component {
         let redemption_url = if include_link {
             let base_url = card.get("baseUrl").and_then(|v| v.as_str()).unwrap_or("");
             let raw_token = card.get("rawToken").and_then(|v| v.as_str()).unwrap_or("");
-            format!("{}/ext/giftcards/redeem/{}", base_url, raw_token)
+            format!("{}/ext/giftcards_wasm/redeem/{}", base_url, raw_token)
         } else {
             String::new()
         };
@@ -901,7 +901,7 @@ impl Guest for Component {
         let amount = card.get("amount").and_then(|v| v.as_u64()).unwrap_or(0);
         let sender = card.get("senderName").and_then(|v| v.as_str()).unwrap_or("Anonymous");
 
-        let redemption_url = format!("{}/ext/giftcards/redeem/{}", base_url, raw_token);
+        let redemption_url = format!("{}/ext/giftcards_wasm/redeem/{}", base_url, raw_token);
         let email_body = if body.is_empty() {
             format!(
                 "You received a gift card worth {} sats from {}!\n\nRedeem it here: {}",
@@ -1012,7 +1012,7 @@ impl Guest for Component {
         let base_url = card.get("baseUrl").and_then(|v| v.as_str()).unwrap_or("");
         let card_id = card.get("cardId").and_then(|v| v.as_str()).unwrap_or("");
 
-        let callback_url = format!("{}/api/v1/ext/giftcards/lnurl/callback", base_url);
+        let callback_url = format!("{}/api/v1/ext/giftcards_wasm/lnurl/callback", base_url);
         // Encode the callback URL into a bech32 LNURL string (uppercase, HRP "LNURL").
         let lnurl = lnurl_encode(&callback_url);
 
@@ -1185,7 +1185,7 @@ impl Guest for Component {
                 let card = pending.first().unwrap();
                 let base_url = card.get("baseUrl").and_then(|v| v.as_str()).unwrap_or("");
                 let sender = card.get("senderName").and_then(|v| v.as_str()).unwrap_or("Anonymous");
-                let magic_link_url = format!("{}/ext/giftcards/claim/{}", base_url, magic_token);
+                let magic_link_url = format!("{}/ext/giftcards_wasm/claim/{}", base_url, magic_token);
 
                 let api_key = req.get("emailApiKey").and_then(|k| k.as_str()).unwrap_or("");
                 let email_body = format!(
@@ -1304,7 +1304,7 @@ impl Guest for Component {
                     "senderName": c.get("senderName").and_then(|v| v.as_str()).unwrap_or(""),
                     "recipientName": c.get("recipientName").and_then(|v| v.as_str()).unwrap_or(""),
                     "message": c.get("message").and_then(|v| v.as_str()).unwrap_or(""),
-                    "redemptionUrl": format!("{}/ext/giftcards/redeem/{}", base_url, raw_token),
+                    "redemptionUrl": format!("{}/ext/giftcards_wasm/redeem/{}", base_url, raw_token),
                 }))
             })
             .collect();

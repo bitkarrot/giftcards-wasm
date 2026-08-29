@@ -1,7 +1,7 @@
 {
-    "id": "giftcards",
-    "name": "Gift Cards",
-    "short_description": "Create and redeem Lightning gift cards with LNURL-withdraw",
+    "id": "giftcards_wasm",
+    "name": "Gift Cards (WASM)",
+    "short_description": "Create and redeem Lightning gift cards with LNURL-withdraw (WASM port)",
     "version": "0.1.0",
     "extension_type": "wasm",
     "wasm": {
@@ -27,22 +27,22 @@
     },
     "ui_routes": [
         {
-            "path": "/giftcards",
+            "path": "/giftcards_wasm",
             "entrypoint": "templates/index.html",
             "auth": "user"
         },
         {
-            "path": "/giftcards/redeem/{token}",
+            "path": "/giftcards_wasm/redeem/{token}",
             "entrypoint": "templates/redeem.html",
             "auth": "public"
         },
         {
-            "path": "/giftcards/claim",
+            "path": "/giftcards_wasm/claim",
             "entrypoint": "templates/claim.html",
             "auth": "public"
         },
         {
-            "path": "/giftcards/claim/{token}",
+            "path": "/giftcards_wasm/claim/{token}",
             "entrypoint": "templates/claim.html",
             "auth": "public"
         }

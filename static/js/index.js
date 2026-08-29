@@ -95,7 +95,7 @@
   }
 
   // --- API via bridge ---
-  var API_BASE = '/api/v1/ext/giftcards';
+  var API_BASE = '/api/v1/ext/giftcards_wasm';
   function apiCall(method, path, body) {
     var fullPath = API_BASE + path;
     return window.LNbitsBridge.connect().then(function() {
@@ -343,7 +343,7 @@
         html += '<div>Delivery: <span class="status-badge ' + getDeliveryColor(emailStatus) + '">' + escapeHtml(emailStatus) + '</span></div>';
         html += '</div>';
         // QR code
-        var redemptionUrl = card.redemptionUrl || card.redemption_url || (window.location.origin + '/ext/giftcards/redeem/' + (card.rawToken || card.raw_token || ''));
+        var redemptionUrl = card.redemptionUrl || card.redemption_url || (window.location.origin + '/ext/giftcards_wasm/redeem/' + (card.rawToken || card.raw_token || ''));
         currentDetailRedemptionUrl = redemptionUrl;
         if (card.rawToken || card.raw_token) {
           html += '<div class="qr-container"><canvas id="detail-qr"></canvas></div>';
@@ -886,7 +886,7 @@
         img.src = design.customTemplateData;
         img.style.display = '';
       } else if (design.template !== 'custom') {
-        img.src = '/ext-assets/giftcards/image/template_' + design.template + '.png';
+        img.src = '/ext-assets/giftcards_wasm/image/template_' + design.template + '.png';
         img.style.display = '';
       } else {
         img.style.display = 'none';

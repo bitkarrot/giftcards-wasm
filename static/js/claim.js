@@ -13,7 +13,7 @@
     });
   }
 
-  var API_BASE = '/api/v1/ext/giftcards';
+  var API_BASE = '/api/v1/ext/giftcards_wasm';
   function apiCall(method, path, body) {
     var fullPath = API_BASE + path;
     return window.LNbitsBridge.connect().then(function() {
@@ -21,7 +21,7 @@
     });
   }
 
-  // Check if we have a magic token in the URL: /ext/giftcards/claim/{token}
+  // Check if we have a magic token in the URL: /ext/giftcards_wasm/claim/{token}
   var pathParts = window.location.pathname.split('/');
   var magicToken = '';
   for (var i = 0; i < pathParts.length; i++) {
@@ -100,7 +100,7 @@
     var list = $('claim-cards-list');
     var html = '';
     cards.forEach(function(card) {
-      var redeemUrl = '/ext/giftcards/redeem/' + (card.rawToken || card.tokenHash || '');
+      var redeemUrl = '/ext/giftcards_wasm/redeem/' + (card.rawToken || card.tokenHash || '');
       html += '<div class="card-item">';
       html += '<div>';
       html += '<div class="amount">' + (card.amount || 0).toLocaleString() + ' sats</div>';
