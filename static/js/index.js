@@ -4,6 +4,7 @@
 
   var currentCards = [];
   var currentDetailCard = null;
+  var currentDetailRedemptionUrl = '';
 
   // --- Helpers ---
   function $(id) { return document.getElementById(id); }
@@ -140,9 +141,14 @@
         html += '</div>';
         // QR code
         var redemptionUrl = card.redemptionUrl || (window.location.origin + '/ext/giftcards/redeem/' + (card.rawToken || ''));
+        currentDetailRedemptionUrl = redemptionUrl;
         if (card.rawToken) {
           html += '<div class="qr-container"><canvas id="detail-qr"></canvas></div>';
-          html += '<div class="detail-link"><a href="' + escapeHtml(redemptionUrl) + '" target="_blank">' + escapeHtml(redemptionUrl) + '</a></div>';
+          html += '<div class="detail-link"><input type="text" id="detail-link-input" readonly value="' + escapeHtml(redemptionUrl) + '" style="width:100%;padding:6px;border:1px solid var(--gc-border);border-radius:4px;background:var(--gc-input-bg);color:var(--gc-text);font-size:12px;"></div>';
+          html += '<div class="detail-actions" style="margin-top:8px;">';
+          html += '<button class="btn btn-sm" id="btn-copy-link">Copy Link</button>';
+          html += '<button class="btn btn-sm btn-primary" id="btn-open-link">Open in New Tab</button>';
+          html += '</div>';
         }
         body.innerHTML = html;
         show($('card-dialog'));
@@ -155,6 +161,39 @@
               window.QRCode.toCanvas(canvas, redemptionUrl, { width: 200 }, function() {});
             }
           }, 50);
+
+          // Copy link button
+          var copyBtn = $('btn-copy-link');
+          if (copyBtn) {
+            copyBtn.addEventListener('click', function() {
+              var input = $('detail-link-input');
+              input.select();
+              var copied = false;
+              try {
+                copied = document.execCommand('copy');
+              } catch(e) {}
+              if (!copied) {
+                try {
+                  navigator.clipboard.writeText(redemptionUrl).then(function() {
+                    copied = true;
+                  }).catch(function() {});
+                } catch(e) {}
+              }
+              toast(copied ? 'Link copied to clipboard' : 'Copy failed - select text manually', copied ? 'success' : 'error');
+            });
+          }
+
+          // Open in new tab via bridge (sandbox blocks target="_blank")
+          var openBtn = $('btn-open-link');
+          if (openBtn) {
+            openBtn.addEventListener('click', function() {
+              window.LNbitsBridge.connect().then(function() {
+                return window.LNbitsBridge.openInNewTab(redemptionUrl);
+              }).catch(function(err) {
+                toast('Could not open link: ' + (err.message || err), 'error');
+              });
+            });
+          }
         }
       })
       .catch(function(err) {
