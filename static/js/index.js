@@ -172,10 +172,10 @@
       giftCardColumns() {
         return [
           {
-            name: 'recipient_name',
+            name: 'recipientName',
             align: 'left',
             label: 'Recipient',
-            field: row => row.recipient_name || 'Anonymous',
+            field: row => row.recipientName || 'Anonymous',
             sortable: true
           },
           {
@@ -189,14 +189,14 @@
             name: 'delivery',
             align: 'left',
             label: 'Delivery',
-            field: row => row.email_status || 'not_sent',
+            field: row => row.emailStatus || 'not_sent',
             sortable: true
           },
           {
-            name: 'expires_at',
+            name: 'expiresAt',
             align: 'left',
             label: 'Expires',
-            field: row => row.expires_at ? this.formatDate(row.expires_at) : 'Never',
+            field: row => row.expiresAt ? this.formatDate(row.expiresAt) : 'Never',
             sortable: true
           }
         ];
@@ -462,11 +462,15 @@
         this.createDialog.loading = true;
         try {
           var designMode = this.createDialog.data.designMode;
-          var cardData = Object.assign({}, this.createDialog.data);
-          delete cardData.designMode;
-          var payload = Object.assign({}, cardData, {
+          var d = this.createDialog.data;
+          var payload = {
+            amount: d.amount,
+            recipientName: d.recipient_name || '',
+            senderName: d.sender_name || '',
+            message: d.message || '',
+            expiresAt: d.expires_at || null,
             design: designMode === 'shared' ? this.buildDesignConfig() : null
-          });
+          };
           var data = await this.apiCall('POST', '/cards', payload);
           this.createDialog.result = data;
           await this.loadGiftCards();
@@ -546,7 +550,7 @@
         try {
           // Fetch full card details to get the redemption URL / token
           var detail = await this.apiCall('GET', '/cards/' + card.id, null);
-          var redemptionUrl = detail.redemption_url || '';
+          var redemptionUrl = detail.redemptionUrl || '';
           if (!redemptionUrl && (detail.token || detail.raw_token)) {
             redemptionUrl = window.location.origin + '/ext/giftcards_wasm/redeem/' + (detail.token || detail.raw_token);
           }
@@ -554,7 +558,7 @@
           // Build a composite image on a canvas
           var canvas = document.createElement('canvas');
           var design = detail.design;
-          var hasDesign = design && design.template_name;
+          var hasDesign = design && design.templateName;
 
           if (hasDesign) {
             // Use the design's template dimensions
@@ -562,10 +566,10 @@
             var th = this.actualTemplateHeight;
             // Try to get dimensions from the design or sample template
             var sample = this.sampleTemplates.find(function (s) {
-              return s.value === design.template_name;
+              return s.value === design.templateName;
             });
-            if (design.template_name === 'portrait') { tw = 425; th = 650; }
-            else if (design.template_name === 'landscape') { tw = 1050; th = 600; }
+            if (design.templateName === 'portrait') { tw = 425; th = 650; }
+            else if (design.templateName === 'landscape') { tw = 1050; th = 600; }
             else if (sample) { tw = sample.w; th = sample.h; }
             else { tw = 425; th = 650; }
 
@@ -574,16 +578,16 @@
             var ctx = canvas.getContext('2d');
 
             // Fill background
-            if (design.template_name === 'portrait' || design.template_name === 'landscape') {
+            if (design.templateName === 'portrait' || design.templateName === 'landscape') {
               ctx.fillStyle = design.bg_color || '#ebedf5';
               ctx.fillRect(0, 0, tw, th);
             } else {
               // Load template image
               var imgUrl;
-              if (design.template_name === 'custom' && design.template_asset_id) {
-                imgUrl = API_BASE + '/cards/template/' + design.template_asset_id;
+              if (design.templateName === 'custom' && design.templateAssetId) {
+                imgUrl = API_BASE + '/cards/template/' + design.templateAssetId;
               } else {
-                imgUrl = IMG_BASE + '/template_' + design.template_name + '.png';
+                imgUrl = IMG_BASE + '/template_' + design.templateName + '.png';
               }
               await this._loadImageAndDraw(ctx, imgUrl, tw, th);
             }
@@ -622,7 +626,7 @@
                 y += lineHeight;
               }
               if (design.show_recipient !== false) {
-                ctx.fillText('For: ' + (detail.recipient_name || card.recipient_name || 'Recipient'), textX, y);
+                ctx.fillText('For: ' + (detail.recipientName || card.recipientName || 'Recipient'), textX, y);
                 y += lineHeight;
               }
               if (design.show_message !== false) {
@@ -666,11 +670,11 @@
             if (url.length > 55) url = url.substring(0, 52) + '...';
             ctx2.fillText(url, 200, 400);
 
-            if (detail.recipient_name || card.recipient_name) {
-              ctx2.fillText('For: ' + (detail.recipient_name || card.recipient_name), 200, 430);
+            if (detail.recipientName || card.recipientName) {
+              ctx2.fillText('For: ' + (detail.recipientName || card.recipientName), 200, 430);
             }
-            if (detail.sender_name || card.sender_name) {
-              ctx2.fillText('From: ' + (detail.sender_name || card.sender_name), 200, 450);
+            if (detail.senderName || card.senderName) {
+              ctx2.fillText('From: ' + (detail.senderName || card.senderName), 200, 450);
             }
           }
 
@@ -724,10 +728,10 @@
         var rows = cards.map(function (card) {
           return [
             card.id, card.amount, card.status,
-            card.recipient_name || '', card.sender_name || '',
-            card.message || '', card.recipient_email || '',
-            card.email_status || '', card.redemption_url || '',
-            card.created_at || '', card.expires_at || '', card.redeemed_at || ''
+            card.recipientName || '', card.senderName || '',
+            card.message || '', card.recipientEmail || '',
+            card.emailStatus || '', card.redemptionUrl || '',
+            card.createdAt || '', card.expiresAt || '', card.redeemedAt || ''
           ];
         });
 
@@ -942,9 +946,9 @@
       openEmailDialog(card) {
         this.emailDialog.card = card;
         this.emailDialog.data = {
-          recipient_email: card.recipient_email || '',
+          recipient_email: card.recipientEmail || '',
           email_mode: 'custom',
-          subject: 'You have a gift card from ' + (card.sender_name || 'Anonymous'),
+          subject: 'You have a gift card from ' + (card.senderName || 'Anonymous'),
           body: '',
           template: 'notification',
           bg_color: '#1976d2'
@@ -960,7 +964,16 @@
         }
         this.emailDialog.loading = true;
         try {
-          await this.apiCall('POST', '/cards/' + this.emailDialog.card.id + '/deliver', this.emailDialog.data);
+          var d = this.emailDialog.data;
+          var payload = {
+            recipientEmail: d.recipient_email,
+            emailMode: d.email_mode || 'custom',
+            subject: d.subject || '',
+            body: d.body || '',
+            template: d.template || 'notification',
+            bgColor: d.bg_color || '#1976d2'
+          };
+          await this.apiCall('POST', '/cards/' + this.emailDialog.card.id + '/deliver', payload);
           this.emailDialog.show = false;
           this.$q.notify({ message: 'Email sent successfully', type: 'positive' });
           await this.loadGiftCards();
@@ -1044,10 +1057,10 @@
             var samePayload = {
               count: this.bulkDialog.sameData.count,
               amount: this.bulkDialog.sameData.amount,
-              recipient_name: this.bulkDialog.sameData.recipient_name || null,
-              sender_name: this.bulkDialog.sameData.sender_name || null,
+              recipientName: this.bulkDialog.sameData.recipient_name || null,
+              senderName: this.bulkDialog.sameData.sender_name || null,
               message: this.bulkDialog.sameData.message || null,
-              expires_at: this.bulkDialog.sameData.expires_at || null,
+              expiresAt: this.bulkDialog.sameData.expires_at || null,
               design: design2
             };
             await this.apiCall('POST', '/cards/bulk', samePayload);
@@ -1114,8 +1127,8 @@
         try {
           var data = await this.apiCall('GET', '/cards/' + card.id + '?include_link=true', null);
           this.detailDialog.card = data;
-          if (data.token_hash) {
-            this.detailDialog.cardImageUrl = API_BASE + '/cards/' + data.token_hash + '/image?t=' + Date.now();
+          if (data.tokenHash) {
+            this.detailDialog.cardImageUrl = API_BASE + '/cards/' + data.tokenHash + '/image?t=' + Date.now();
           }
         } catch (error) {
           console.error('Failed to load card details:', error);
@@ -1125,10 +1138,10 @@
       async openEditDialog(card) {
         this.editDialog.card = card;
         this.editDialog.data = {
-          recipient_name: card.recipient_name || '',
-          sender_name: card.sender_name || '',
+          recipient_name: card.recipientName || '',
+          sender_name: card.senderName || '',
           message: card.message || '',
-          recipient_email: card.recipient_email || ''
+          recipient_email: card.recipientEmail || ''
         };
         this.resetCardDesigner();
         this.editDialog.data.designMode = 'none';
@@ -1177,18 +1190,18 @@
       },
 
       applyDesignToDesigner(design) {
-        if (design.template_name && design.template_name !== 'custom') {
-          this.selectedTemplate = design.template_name;
-          this.onTemplateChange(design.template_name);
-        } else if (design.template_name === 'custom') {
+        if (design.templateName && design.templateName !== 'custom') {
+          this.selectedTemplate = design.templateName;
+          this.onTemplateChange(design.templateName);
+        } else if (design.templateName === 'custom') {
           this.selectedTemplate = 'custom';
-          this.templateAssetId = design.template_asset_id || null;
+          this.templateAssetId = design.templateAssetId || null;
           this.templateAssetStaged = false;
-          if (design.template_asset_id) {
-            this.templateUrl = API_BASE + '/cards/template/' + design.template_asset_id;
+          if (design.templateAssetId) {
+            this.templateUrl = API_BASE + '/cards/template/' + design.templateAssetId;
           }
         } else {
-          this.templateAssetId = design.template_asset_id || null;
+          this.templateAssetId = design.templateAssetId || null;
           this.templateAssetStaged = false;
         }
         this.qrX = Math.round((design.qr_x_frac || 0.1) * this.previewWidth);
@@ -1231,9 +1244,13 @@
         this.editDialog.loading = true;
         try {
           var designMode = this.editDialog.data.designMode;
-          var editData = Object.assign({}, this.editDialog.data);
-          delete editData.designMode;
-          var payload = Object.assign({}, editData);
+          var d = this.editDialog.data;
+          var payload = {
+            recipientName: d.recipient_name || '',
+            senderName: d.sender_name || '',
+            message: d.message || '',
+            recipientEmail: d.recipient_email || ''
+          };
           if (this.designLoaded) {
             if (designMode === 'shared') {
               payload.design = this.buildDesignConfig();
@@ -1340,7 +1357,7 @@
         } else {
           targetCards = this.giftCards;
         }
-        var emailable = targetCards.filter(function (c) { return c.recipient_email; });
+        var emailable = targetCards.filter(function (c) { return c.recipientEmail; });
         var skipped = targetCards.length - emailable.length;
         this.bulkEmailDialog.scope = scope;
         this.bulkEmailDialog.cards = emailable;
@@ -1359,9 +1376,9 @@
             var card = this.bulkEmailDialog.selected[i];
             try {
               await this.apiCall('POST', '/cards/' + card.id + '/deliver', {
-                recipient_email: card.recipient_email,
+                recipient_email: card.recipientEmail,
                 email_mode: 'custom',
-                subject: 'You have a gift card from ' + (card.sender_name || 'Anonymous'),
+                subject: 'You have a gift card from ' + (card.senderName || 'Anonymous'),
                 body: ''
               });
               sent++;

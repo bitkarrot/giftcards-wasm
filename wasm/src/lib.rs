@@ -548,6 +548,8 @@ impl Guest for Component {
                     "expiresAt": c.get("expiresAt").and_then(|v| v.as_str()).unwrap_or(""),
                     "redeemedAt": c.get("redeemedAt").and_then(|v| v.as_str()).unwrap_or(""),
                     "expiredAt": c.get("expiredAt").and_then(|v| v.as_str()).unwrap_or(""),
+                    "templateName": c.get("templateName").and_then(|v| v.as_str()).unwrap_or(""),
+                    "templateAssetId": c.get("templateAssetId").and_then(|v| v.as_str()).unwrap_or(""),
                 })
             })
             .collect();

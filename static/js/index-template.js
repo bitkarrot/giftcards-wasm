@@ -287,7 +287,7 @@ return function render(_ctx, _cache) {
                                   ]))
                                 : (col.name === 'delivery')
                                   ? (_openBlock(), _createElementBlock("span", { key: 1 }, [
-                                      (props.row.recipient_email)
+                                      (props.row.recipientEmail)
                                         ? (_openBlock(), _createBlock(_component_q_badge, {
                                             key: 0,
                                             color: _ctx.getDeliveryStatusColor(col.value),
@@ -401,7 +401,7 @@ return function render(_ctx, _cache) {
                               _createElementVNode("div", { class: "row q-col-gutter-md" }, [
                                 _createElementVNode("div", { class: "col-12 col-md-6" }, [
                                   _createElementVNode("div", { class: "text-caption" }, "From:"),
-                                  _createElementVNode("div", null, _toDisplayString(props.row.sender_name || 'Anonymous'), 1 /* TEXT */)
+                                  _createElementVNode("div", null, _toDisplayString(props.row.senderName || 'Anonymous'), 1 /* TEXT */)
                                 ]),
                                 _createElementVNode("div", { class: "col-12 col-md-6" }, [
                                   _createElementVNode("div", { class: "text-caption" }, "Message:"),
@@ -409,7 +409,7 @@ return function render(_ctx, _cache) {
                                 ]),
                                 _createElementVNode("div", { class: "col-6 col-md-3" }, [
                                   _createElementVNode("div", { class: "text-caption" }, "Created:"),
-                                  _createElementVNode("div", null, _toDisplayString(_ctx.formatDate(props.row.created_at)), 1 /* TEXT */)
+                                  _createElementVNode("div", null, _toDisplayString(_ctx.formatDate(props.row.createdAt)), 1 /* TEXT */)
                                 ]),
                                 _createElementVNode("div", { class: "col-6 col-md-3" }, [
                                   _createElementVNode("div", { class: "text-caption" }, "Status:"),
@@ -421,11 +421,11 @@ return function render(_ctx, _cache) {
                               ]),
                               _createVNode(_component_q_separator, { class: "q-my-md" }),
                               _createElementVNode("div", { class: "text-caption q-mb-xs" }, "Redemption Link:"),
-                              (props.row.redemption_url)
+                              (props.row.redemptionUrl)
                                 ? (_openBlock(), _createBlock(_component_q_input, {
                                     key: 0,
                                     readonly: "",
-                                    "model-value": props.row.redemption_url,
+                                    "model-value": props.row.redemptionUrl,
                                     outlined: "",
                                     dense: "",
                                     "input-style": { color: _ctx.$q.dark.isActive ? '#e0e0e0' : '#333' }
@@ -436,7 +436,7 @@ return function render(_ctx, _cache) {
                                         round: "",
                                         dense: "",
                                         icon: "content_copy",
-                                        onClick: $event => (_ctx.copyToClipboard(props.row.redemption_url)),
+                                        onClick: $event => (_ctx.copyToClipboard(props.row.redemptionUrl)),
                                         "aria-label": "Copy link to clipboard"
                                       }, {
                                         default: _withCtx(() => [
@@ -979,7 +979,7 @@ return function render(_ctx, _cache) {
                     _createElementVNode("div", { class: "text-caption" }, "Preview:"),
                     _createVNode(_component_q_card, { class: "q-pa-md bg-grey-2" }, {
                       default: _withCtx(() => [
-                        _createElementVNode("div", { class: "text-caption text-grey-7" }, " Subject: " + _toDisplayString(_ctx.emailDialog.data.subject || 'You have a gift card from ' + (_ctx.emailDialog.card ? (_ctx.emailDialog.card.sender_name || 'Anonymous') : 'Anonymous')), 1 /* TEXT */),
+                        _createElementVNode("div", { class: "text-caption text-grey-7" }, " Subject: " + _toDisplayString(_ctx.emailDialog.data.subject || 'You have a gift card from ' + (_ctx.emailDialog.card ? (_ctx.emailDialog.card.senderName || 'Anonymous') : 'Anonymous')), 1 /* TEXT */),
                         (_ctx.emailDialog.data.email_mode === 'custom')
                           ? (_openBlock(), _createElementBlock("div", {
                               key: 0,
@@ -999,7 +999,7 @@ return function render(_ctx, _cache) {
                                 _createElementVNode("div", { style: {"padding":"16px"} }, [
                                   _createElementVNode("div", { style: {"color":"#333","font-size":"14px","margin-bottom":"12px"} }, [
                                     _createElementVNode("strong", null, "From:"),
-                                    _createTextVNode(" " + _toDisplayString(_ctx.emailDialog.card ? (_ctx.emailDialog.card.sender_name || 'Anonymous') : 'Anonymous'), 1 /* TEXT */)
+                                    _createTextVNode(" " + _toDisplayString(_ctx.emailDialog.card ? (_ctx.emailDialog.card.senderName || 'Anonymous') : 'Anonymous'), 1 /* TEXT */)
                                   ]),
                                   (_ctx.emailDialog.card && _ctx.emailDialog.card.message)
                                     ? (_openBlock(), _createElementBlock("div", {
@@ -1479,7 +1479,7 @@ return function render(_ctx, _cache) {
                                               props: props
                                             }, {
                                               default: _withCtx(() => [
-                                                _createTextVNode(_toDisplayString(props.row.recipient_name), 1 /* TEXT */)
+                                                _createTextVNode(_toDisplayString(props.row.recipientName), 1 /* TEXT */)
                                               ]),
                                               _: 2 /* DYNAMIC */
                                             }, 1032 /* PROPS, DYNAMIC_SLOTS */, ["props"]),
@@ -1497,7 +1497,7 @@ return function render(_ctx, _cache) {
                                               props: props
                                             }, {
                                               default: _withCtx(() => [
-                                                _createTextVNode(_toDisplayString(props.row.recipient_email || '—'), 1 /* TEXT */)
+                                                _createTextVNode(_toDisplayString(props.row.recipientEmail || '—'), 1 /* TEXT */)
                                               ]),
                                               _: 2 /* DYNAMIC */
                                             }, 1032 /* PROPS, DYNAMIC_SLOTS */, ["props"]),
@@ -1841,15 +1841,15 @@ return function render(_ctx, _cache) {
                       ]),
                       _createElementVNode("div", { class: "col-12 col-md-6" }, [
                         _createElementVNode("div", { class: "text-caption" }, "Recipient"),
-                        _createElementVNode("div", { class: "text-body2" }, _toDisplayString(_ctx.detailDialog.card.recipient_name || 'Anonymous'), 1 /* TEXT */)
+                        _createElementVNode("div", { class: "text-body2" }, _toDisplayString(_ctx.detailDialog.card.recipientName || 'Anonymous'), 1 /* TEXT */)
                       ]),
                       _createElementVNode("div", { class: "col-12 col-md-6" }, [
                         _createElementVNode("div", { class: "text-caption" }, "Sender"),
-                        _createElementVNode("div", { class: "text-body2" }, _toDisplayString(_ctx.detailDialog.card.sender_name || 'Anonymous'), 1 /* TEXT */)
+                        _createElementVNode("div", { class: "text-body2" }, _toDisplayString(_ctx.detailDialog.card.senderName || 'Anonymous'), 1 /* TEXT */)
                       ]),
                       _createElementVNode("div", { class: "col-12 col-md-6" }, [
                         _createElementVNode("div", { class: "text-caption" }, "Email"),
-                        _createElementVNode("div", { class: "text-body2" }, _toDisplayString(_ctx.detailDialog.card.recipient_email || '—'), 1 /* TEXT */)
+                        _createElementVNode("div", { class: "text-body2" }, _toDisplayString(_ctx.detailDialog.card.recipientEmail || '—'), 1 /* TEXT */)
                       ]),
                       _createElementVNode("div", { class: "col-12" }, [
                         _createElementVNode("div", { class: "text-caption" }, "Message"),
@@ -1857,21 +1857,21 @@ return function render(_ctx, _cache) {
                       ]),
                       _createElementVNode("div", { class: "col-12 col-md-6" }, [
                         _createElementVNode("div", { class: "text-caption" }, "Created"),
-                        _createElementVNode("div", { class: "text-body2" }, _toDisplayString(_ctx.formatDate(_ctx.detailDialog.card.created_at)), 1 /* TEXT */)
+                        _createElementVNode("div", { class: "text-body2" }, _toDisplayString(_ctx.formatDate(_ctx.detailDialog.card.createdAt)), 1 /* TEXT */)
                       ]),
                       _createElementVNode("div", { class: "col-12 col-md-6" }, [
                         _createElementVNode("div", { class: "text-caption" }, "Expires"),
-                        _createElementVNode("div", { class: "text-body2" }, _toDisplayString(_ctx.detailDialog.card.expires_at ? _ctx.formatDate(_ctx.detailDialog.card.expires_at) : 'Never'), 1 /* TEXT */)
+                        _createElementVNode("div", { class: "text-body2" }, _toDisplayString(_ctx.detailDialog.card.expiresAt ? _ctx.formatDate(_ctx.detailDialog.card.expiresAt) : 'Never'), 1 /* TEXT */)
                       ]),
                       _createElementVNode("div", { class: "col-12 col-md-6" }, [
                         _createElementVNode("div", { class: "text-caption" }, "Redeemed"),
-                        _createElementVNode("div", { class: "text-body2" }, _toDisplayString(_ctx.detailDialog.card.redeemed_at ? _ctx.formatDate(_ctx.detailDialog.card.redeemed_at) : '—'), 1 /* TEXT */)
+                        _createElementVNode("div", { class: "text-body2" }, _toDisplayString(_ctx.detailDialog.card.redeemedAt ? _ctx.formatDate(_ctx.detailDialog.card.redeemedAt) : '—'), 1 /* TEXT */)
                       ]),
                       _createElementVNode("div", { class: "col-12 col-md-6" }, [
                         _createElementVNode("div", { class: "text-caption" }, "Delivery Status"),
                         _createVNode(_component_q_badge, {
-                          color: _ctx.getDeliveryStatusColor(_ctx.detailDialog.card.email_status || 'not_sent'),
-                          label: _ctx.getDeliveryStatusText(_ctx.detailDialog.card.email_status || 'not_sent')
+                          color: _ctx.getDeliveryStatusColor(_ctx.detailDialog.card.emailStatus || 'not_sent'),
+                          label: _ctx.getDeliveryStatusText(_ctx.detailDialog.card.emailStatus || 'not_sent')
                         }, null, 8 /* PROPS */, ["color", "label"])
                       ])
                     ]),
@@ -1881,7 +1881,7 @@ return function render(_ctx, _cache) {
                       readonly: "",
                       dense: "",
                       outlined: "",
-                      "model-value": _ctx.detailDialog.card.redemption_url,
+                      "model-value": _ctx.detailDialog.card.redemptionUrl,
                       "input-style": { color: _ctx.$q.dark.isActive ? '#e0e0e0' : '#333' }
                     }, {
                       append: _withCtx(() => [
@@ -1889,7 +1889,7 @@ return function render(_ctx, _cache) {
                           flat: "",
                           dense: "",
                           icon: "content_copy",
-                          onClick: $event => (_ctx.copyToClipboard(_ctx.detailDialog.card.redemption_url)),
+                          onClick: $event => (_ctx.copyToClipboard(_ctx.detailDialog.card.redemptionUrl)),
                           "aria-label": "Copy link to clipboard"
                         }, null, 8 /* PROPS */, ["onClick"])
                       ]),
@@ -2463,7 +2463,7 @@ return function render(_ctx, _cache) {
                         "body-cell-recipient_name": _withCtx((props) => [
                           _createVNode(_component_q_td, { props: props }, {
                             default: _withCtx(() => [
-                              _createTextVNode(_toDisplayString(props.row.recipient_name || '—'), 1 /* TEXT */)
+                              _createTextVNode(_toDisplayString(props.row.recipientName || '—'), 1 /* TEXT */)
                             ]),
                             _: 2 /* DYNAMIC */
                           }, 1032 /* PROPS, DYNAMIC_SLOTS */, ["props"])

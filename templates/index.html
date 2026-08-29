@@ -207,7 +207,7 @@
                     </span>
                     <span v-else-if="col.name === 'delivery'">
                       <q-badge
-                        v-if="props.row.recipient_email"
+                        v-if="props.row.recipientEmail"
                         :color="getDeliveryStatusColor(col.value)"
                         :label="getDeliveryStatusText(col.value)"
                       ></q-badge>
@@ -276,7 +276,7 @@
                       <div class="row q-col-gutter-md">
                         <div class="col-12 col-md-6">
                           <div class="text-caption">From:</div>
-                          <div>{{ props.row.sender_name || 'Anonymous' }}</div>
+                          <div>{{ props.row.senderName || 'Anonymous' }}</div>
                         </div>
                         <div class="col-12 col-md-6">
                           <div class="text-caption">Message:</div>
@@ -284,7 +284,7 @@
                         </div>
                         <div class="col-6 col-md-3">
                           <div class="text-caption">Created:</div>
-                          <div>{{ formatDate(props.row.created_at) }}</div>
+                          <div>{{ formatDate(props.row.createdAt) }}</div>
                         </div>
                         <div class="col-6 col-md-3">
                           <div class="text-caption">Status:</div>
@@ -299,9 +299,9 @@
 
                       <div class="text-caption q-mb-xs">Redemption Link:</div>
                       <q-input
-                        v-if="props.row.redemption_url"
+                        v-if="props.row.redemptionUrl"
                         readonly
-                        :model-value="props.row.redemption_url"
+                        :model-value="props.row.redemptionUrl"
                         outlined
                         dense
                         :input-style="{ color: $q.dark.isActive ? '#e0e0e0' : '#333' }"
@@ -312,7 +312,7 @@
                             round
                             dense
                             icon="content_copy"
-                            @click="copyToClipboard(props.row.redemption_url)"
+                            @click="copyToClipboard(props.row.redemptionUrl)"
                             aria-label="Copy link to clipboard"
                           >
                             <q-tooltip>Copy link</q-tooltip>
@@ -724,7 +724,7 @@
               <div class="text-caption">Preview:</div>
               <q-card class="q-pa-md bg-grey-2">
                 <div class="text-caption text-grey-7">
-                  Subject: {{ emailDialog.data.subject || 'You have a gift card from ' + (emailDialog.card ? (emailDialog.card.sender_name || 'Anonymous') : 'Anonymous') }}
+                  Subject: {{ emailDialog.data.subject || 'You have a gift card from ' + (emailDialog.card ? (emailDialog.card.senderName || 'Anonymous') : 'Anonymous') }}
                 </div>
                 <div v-if="emailDialog.data.email_mode === 'custom'" class="text-body2 q-mt-sm">
                   {{ emailDialog.data.body || '(email body preview)' }}
@@ -741,7 +741,7 @@
                     </div>
                     <div style="padding: 16px;">
                       <div style="color: #333; font-size: 14px; margin-bottom: 12px;">
-                        <strong>From:</strong> {{ emailDialog.card ? (emailDialog.card.sender_name || 'Anonymous') : 'Anonymous' }}
+                        <strong>From:</strong> {{ emailDialog.card ? (emailDialog.card.senderName || 'Anonymous') : 'Anonymous' }}
                       </div>
                       <div v-if="emailDialog.card && emailDialog.card.message" :style="{background: '#f5f5f5', borderLeft: '4px solid ' + emailDialog.data.bg_color, padding: '12px', marginBottom: '12px'}">
                         <div style="color: #555; font-size: 13px;">{{ emailDialog.card.message }}</div>
@@ -1084,9 +1084,9 @@
                                 size="20px"
                               ></q-icon>
                             </q-td>
-                            <q-td key="recipient_name" :props="props">{{ props.row.recipient_name }}</q-td>
+                            <q-td key="recipient_name" :props="props">{{ props.row.recipientName }}</q-td>
                             <q-td key="amount_sats" :props="props">{{ props.row.amount_sats }} sats</q-td>
-                            <q-td key="recipient_email" :props="props">{{ props.row.recipient_email || '—' }}</q-td>
+                            <q-td key="recipient_email" :props="props">{{ props.row.recipientEmail || '—' }}</q-td>
                             <q-td key="nostr_npub" :props="props">{{ props.row.nostr_npub || '—' }}</q-td>
                             <q-td key="errors" :props="props">
                               <span v-if="props.row.errors && props.row.errors.length > 0" class="text-caption text-negative">
@@ -1312,15 +1312,15 @@
               </div>
               <div class="col-12 col-md-6">
                 <div class="text-caption">Recipient</div>
-                <div class="text-body2">{{ detailDialog.card.recipient_name || 'Anonymous' }}</div>
+                <div class="text-body2">{{ detailDialog.card.recipientName || 'Anonymous' }}</div>
               </div>
               <div class="col-12 col-md-6">
                 <div class="text-caption">Sender</div>
-                <div class="text-body2">{{ detailDialog.card.sender_name || 'Anonymous' }}</div>
+                <div class="text-body2">{{ detailDialog.card.senderName || 'Anonymous' }}</div>
               </div>
               <div class="col-12 col-md-6">
                 <div class="text-caption">Email</div>
-                <div class="text-body2">{{ detailDialog.card.recipient_email || '—' }}</div>
+                <div class="text-body2">{{ detailDialog.card.recipientEmail || '—' }}</div>
               </div>
               <div class="col-12">
                 <div class="text-caption">Message</div>
@@ -1328,21 +1328,21 @@
               </div>
               <div class="col-12 col-md-6">
                 <div class="text-caption">Created</div>
-                <div class="text-body2">{{ formatDate(detailDialog.card.created_at) }}</div>
+                <div class="text-body2">{{ formatDate(detailDialog.card.createdAt) }}</div>
               </div>
               <div class="col-12 col-md-6">
                 <div class="text-caption">Expires</div>
-                <div class="text-body2">{{ detailDialog.card.expires_at ? formatDate(detailDialog.card.expires_at) : 'Never' }}</div>
+                <div class="text-body2">{{ detailDialog.card.expiresAt ? formatDate(detailDialog.card.expiresAt) : 'Never' }}</div>
               </div>
               <div class="col-12 col-md-6">
                 <div class="text-caption">Redeemed</div>
-                <div class="text-body2">{{ detailDialog.card.redeemed_at ? formatDate(detailDialog.card.redeemed_at) : '—' }}</div>
+                <div class="text-body2">{{ detailDialog.card.redeemedAt ? formatDate(detailDialog.card.redeemedAt) : '—' }}</div>
               </div>
               <div class="col-12 col-md-6">
                 <div class="text-caption">Delivery Status</div>
                 <q-badge
-                  :color="getDeliveryStatusColor(detailDialog.card.email_status || 'not_sent')"
-                  :label="getDeliveryStatusText(detailDialog.card.email_status || 'not_sent')"
+                  :color="getDeliveryStatusColor(detailDialog.card.emailStatus || 'not_sent')"
+                  :label="getDeliveryStatusText(detailDialog.card.emailStatus || 'not_sent')"
                 ></q-badge>
               </div>
             </div>
@@ -1354,7 +1354,7 @@
               readonly
               dense
               outlined
-              :model-value="detailDialog.card.redemption_url"
+              :model-value="detailDialog.card.redemptionUrl"
               :input-style="{ color: $q.dark.isActive ? '#e0e0e0' : '#333' }"
             >
               <template v-slot:append>
@@ -1362,7 +1362,7 @@
                   flat
                   dense
                   icon="content_copy"
-                  @click="copyToClipboard(detailDialog.card.redemption_url)"
+                  @click="copyToClipboard(detailDialog.card.redemptionUrl)"
                   aria-label="Copy link to clipboard"
                 ></q-btn>
               </template>
@@ -1763,7 +1763,7 @@
               >
                 <template v-slot:body-cell-recipient_name="props">
                   <q-td :props="props">
-                    {{ props.row.recipient_name || '—' }}
+                    {{ props.row.recipientName || '—' }}
                   </q-td>
                 </template>
               </q-table>
