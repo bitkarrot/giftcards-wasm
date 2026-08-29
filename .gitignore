@@ -1,6 +1,12 @@
 # Rust / cargo build artifacts
 wasm/target/
 
+# Node
+node_modules/
+
+# Playwright test artifacts
+test-results/
+
 # Python
 __pycache__/
 *.pyc

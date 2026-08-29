@@ -24,9 +24,11 @@
   }
 
   // --- API via bridge ---
+  var API_BASE = '/api/v1/ext/giftcards';
   function apiCall(method, path, body) {
+    var fullPath = API_BASE + path;
     return window.LNbitsBridge.connect().then(function() {
-      return window.LNbitsBridge.callApi(method, path, body);
+      return window.LNbitsBridge.callApi(method, fullPath, body);
     });
   }
 
@@ -144,12 +146,15 @@
   }
 
   function doCreate() {
+    var selectedTemplate = document.querySelector('.template-preview.selected');
+    var templateName = selectedTemplate ? selectedTemplate.getAttribute('data-template') : 'blue';
     var body = {
       amount: parseInt($('create-amount').value, 10),
       recipientName: $('create-recipient-name').value,
       recipientEmail: $('create-recipient-email').value,
       senderName: $('create-sender-name').value,
       message: $('create-message').value,
+      designJson: JSON.stringify({template: templateName}),
     };
     var expiresAt = $('create-expires-at').value;
     if (expiresAt) body.expiresAt = expiresAt;
@@ -254,6 +259,14 @@
     $('btn-create').addEventListener('click', openCreateDialog);
     $('btn-create-cancel').addEventListener('click', function() { hide($('create-dialog')); });
     $('btn-create-confirm').addEventListener('click', doCreate);
+
+    // Template selector
+    document.querySelectorAll('.template-preview').forEach(function(img) {
+      img.addEventListener('click', function() {
+        document.querySelectorAll('.template-preview').forEach(function(el) { el.classList.remove('selected'); });
+        img.classList.add('selected');
+      });
+    });
 
     // Deliver
     $('btn-deliver-cancel').addEventListener('click', function() { hide($('deliver-dialog')); });

@@ -13,9 +13,11 @@
     });
   }
 
+  var API_BASE = '/api/v1/ext/giftcards';
   function apiCall(method, path, body) {
+    var fullPath = API_BASE + path;
     return window.LNbitsBridge.connect().then(function() {
-      return window.LNbitsBridge.callApi(method, path, body);
+      return window.LNbitsBridge.callApi(method, fullPath, body);
     });
   }
 
