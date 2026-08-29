@@ -53,6 +53,64 @@ async function loginAndGoto(page, url) {
   await page.waitForLoadState('networkidle');
 }
 
+// Helper: find the extension iframe
+async function getExtFrame(page) {
+  await page.waitForTimeout(5000);
+  let extFrame = page.frames().find(f => f.url().includes('ext-frame'));
+  if (!extFrame) {
+    await page.waitForTimeout(5000);
+    extFrame = page.frames().find(f => f.url().includes('ext-frame'));
+  }
+  return extFrame;
+}
+
+// Helper: dismiss any LNbits dialogs/backdrops that might overlay the iframe
+async function dismissDialogs(page) {
+  await page.evaluate(() => {
+    document.querySelectorAll('.q-dialog__backdrop, .q-dialog').forEach(el => el.remove());
+  });
+  await page.waitForTimeout(500);
+}
+
+// Helper: fill a Quasar q-input by its label text
+async function fillQInput(frame, labelText, value) {
+  // Quasar wraps inputs in .q-field with a label. Find the input inside.
+  const field = await frame.$(`.q-field:has(.q-label:has-text("${labelText}")) input`);
+  if (field) {
+    await field.fill(value);
+  } else {
+    // Fallback: try textarea
+    const textarea = await frame.$(`.q-field:has(.q-label:has-text("${labelText}")) textarea`);
+    if (textarea) {
+      await textarea.fill(value);
+    }
+  }
+}
+
+// Helper: select an option in a Quasar q-select by label
+async function selectQOption(frame, labelText, optionText) {
+  // Click the select to open the dropdown
+  const select = await frame.$(`.q-field:has(.q-label:has-text("${labelText}"))`);
+  if (select) {
+    await select.click();
+    await frame.waitForTimeout(500);
+    // Click the option in the dropdown menu
+    const option = await frame.$(`.q-menu .q-item:has-text("${optionText}")`);
+    if (option) {
+      await option.click();
+      await frame.waitForTimeout(300);
+    }
+  }
+}
+
+// Helper: click a q-btn by its label text
+async function clickQBtn(frame, labelText) {
+  const btn = await frame.$(`.q-btn:has(.q-btn__content:has-text("${labelText}"))`);
+  if (btn) {
+    await btn.click();
+  }
+}
+
 test('login and navigate to gift cards', async ({ page, request }) => {
   await loginAndGoto(page, BASE_URL + '/ext/giftcards_wasm');
   await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '01-giftcards-page.png'), fullPage: true });
@@ -61,47 +119,39 @@ test('login and navigate to gift cards', async ({ page, request }) => {
 test('create a gift card', async ({ page }) => {
   await loginAndGoto(page, BASE_URL + '/ext/giftcards_wasm');
 
-  // Wait for the extension iframe to load
-  await page.waitForTimeout(5000);
-  let extFrame = page.frames().find(f => f.url().includes('ext-frame'));
-  if (!extFrame) {
-    await page.waitForTimeout(5000);
-    extFrame = page.frames().find(f => f.url().includes('ext-frame'));
-  }
+  const extFrame = await getExtFrame(page);
   expect(extFrame).toBeTruthy();
+  await dismissDialogs(page);
 
-  // Dismiss any LNbits dialogs/backdrops that might be overlaying
-  await page.evaluate(() => {
-    document.querySelectorAll('.q-dialog__backdrop, .q-dialog').forEach(el => el.remove());
-    document.querySelectorAll('.q-dialog').forEach(el => el.remove());
-  });
-  await page.waitForTimeout(500);
+  // Wait for the Vue app to mount and the create button to appear
+  await extFrame.waitForSelector('.q-btn:has-text("Create Gift Card")', { timeout: 15000 });
 
-  // Wait for the create button to be available
-  await extFrame.waitForSelector('#btn-create', { timeout: 15000 });
+  // Click the first "Create Gift Card" button (in the header, not the dialog submit)
+  await extFrame.locator('.q-btn:has-text("Create Gift Card")').first().click();
+  await page.waitForTimeout(1000);
 
-  // Click create button
-  await extFrame.click('#btn-create');
-  await page.waitForTimeout(500);
-
-  // Fill form
-  await extFrame.fill('#create-amount', '1000');
-  await extFrame.fill('#create-recipient-name', 'Alice');
-  await extFrame.fill('#create-sender-name', 'Bob');
-  await extFrame.fill('#create-message', 'Happy birthday! Enjoy some sats.');
+  // Fill the create form
+  await fillQInput(extFrame, 'Amount (sats)', '1000');
+  await fillQInput(extFrame, 'Recipient Name', 'Alice');
+  await fillQInput(extFrame, 'Your Name', 'Bob');
+  await fillQInput(extFrame, 'Personal Message', 'Happy birthday! Enjoy some sats.');
 
   await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '02-create-dialog.png'), fullPage: true });
 
-  // Enable custom design and select a template
-  await extFrame.selectOption('#create-design-mode', 'shared');
-  await page.waitForTimeout(300);
-  await extFrame.selectOption('#design-template', 'HappyBirthday');
-  await page.waitForTimeout(200);
+  // Enable custom design: select "Custom design" in the Design Mode dropdown
+  await selectQOption(extFrame, 'Design Mode', 'Custom design');
+  await page.waitForTimeout(500);
+
+  // Select the HappyBirthday template
+  await selectQOption(extFrame, 'Template', 'Happy Birthday');
+  await page.waitForTimeout(500);
 
   await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '03-create-dialog-template.png'), fullPage: true });
 
-  // Submit
-  await extFrame.click('#btn-create-confirm');
+  // Submit the form — click the submit button (inside the dialog, not the header)
+  // The dialog submit button has type="submit" and label "Create Gift Card"
+  const dialogSubmit = extFrame.locator('.q-dialog .q-btn[type="submit"]:has-text("Create Gift Card")');
+  await dialogSubmit.click();
   await page.waitForTimeout(5000);
 
   await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '04-card-created.png'), fullPage: true });
@@ -116,29 +166,32 @@ test('view gift card list', async ({ page, request }) => {
 
 test('delete a gift card', async ({ page }) => {
   await loginAndGoto(page, BASE_URL + '/ext/giftcards_wasm');
-  await page.waitForTimeout(5000);
 
-  const extFrame = page.frames().find(f => f.url().includes('ext-frame'));
+  const extFrame = await getExtFrame(page);
   if (!extFrame) return;
+  await dismissDialogs(page);
 
-  // Dismiss any LNbits dialogs/backdrops
-  await page.evaluate(() => {
-    document.querySelectorAll('.q-dialog__backdrop, .q-dialog').forEach(el => el.remove());
-  });
+  // Wait for the table to load
+  await extFrame.waitForSelector('.q-table', { timeout: 15000 });
+  await page.waitForTimeout(2000);
+
+  // Expand the first row to reveal action buttons
+  const expandBtn = await extFrame.$('.q-table tbody tr .q-btn:has(.q-icon.text-expand_more), .q-table tbody tr .q-btn:has(.q-icon.expand_more)');
+  if (!expandBtn) return;
+  await expandBtn.click();
   await page.waitForTimeout(500);
 
-  // Click the first delete button
-  const deleteBtn = await extFrame.$('button[data-action="delete"]').catch(() => null);
+  // Click the delete button (has aria-label="Delete gift card")
+  const deleteBtn = await extFrame.$('button[aria-label="Delete gift card"]');
   if (!deleteBtn) return;
-
   await deleteBtn.click();
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(1000);
 
   // Screenshot the confirm dialog
   await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '09-delete-confirm.png'), fullPage: true });
 
-  // Click confirm
-  await extFrame.click('#btn-confirm-ok');
+  // Click "Delete Card" in the confirmation dialog
+  await clickQBtn(extFrame, 'Delete Card');
   await page.waitForTimeout(3000);
 
   await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '10-card-deleted.png'), fullPage: true });
@@ -146,18 +199,17 @@ test('delete a gift card', async ({ page }) => {
 
 test('view gift card detail with QR', async ({ page }) => {
   await loginAndGoto(page, BASE_URL + '/ext/giftcards_wasm');
-  await page.waitForTimeout(5000);
 
-  const extFrame = page.frames().find(f => f.url().includes('ext-frame'));
+  const extFrame = await getExtFrame(page);
   if (!extFrame) return;
+  await dismissDialogs(page);
 
-  // Dismiss any LNbits dialogs/backdrops
-  await page.evaluate(() => {
-    document.querySelectorAll('.q-dialog__backdrop, .q-dialog').forEach(el => el.remove());
-  });
-  await page.waitForTimeout(500);
+  // Wait for the table to load
+  await extFrame.waitForSelector('.q-table', { timeout: 15000 });
+  await page.waitForTimeout(2000);
 
-  const viewBtn = await extFrame.$('button[data-action="view"]').catch(() => null);
+  // Click the info button (aria-label="View Full Details") on the first row
+  const viewBtn = await extFrame.$('button[aria-label="View Full Details"]');
   if (viewBtn) {
     await viewBtn.click();
     await page.waitForTimeout(2000);

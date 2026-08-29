@@ -1,40 +1,15 @@
-/* Gift Cards Claim Page */
-.hidden { display: none !important; }
-* { margin: 0; padding: 0; box-sizing: border-box; }
-:root {
-  --gc-text: #1a1a1a;
-  --gc-text-muted: #555;
-  --gc-bg: #f5f5f5;
-  --gc-surface: #ffffff;
-  --gc-border: rgba(0,0,0,0.12);
-  --gc-input-bg: #fff;
-  --gc-accent: #1976d2;
+/* Gift Cards Claim Page — Vue + Quasar */
+/* Heading reset: prevent Quasar bundle.min.css from inflating headings */
+h1, h2, h3, h4, h5, h6 {
+  font-size: inherit;
+  font-weight: bold;
+  line-height: 1.3;
+  margin: 0;
+}
+
+body {
+  background: #f5f5f5;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
-    --gc-text: #e0e0e0;
-    --gc-text-muted: #aaa;
-    --gc-bg: #1a1a1a;
-    --gc-surface: #2d2d2d;
-    --gc-border: rgba(255,255,255,0.15);
-    --gc-input-bg: #383838;
-    --gc-accent: #42a5f5;
-  }
+  body { background: #1a1a1a; }
 }
-body { font-family: 'Roboto', sans-serif; background: var(--gc-bg); color: var(--gc-text); color-scheme: light dark; display: flex; align-items: center; justify-content: center; min-height: 100vh; font-size: 14px; line-height: 1.5; }
-h1, h2, h3, h4, h5, h6 { font-size: inherit; font-weight: bold; line-height: 1.3; margin: 0; }
-.card-container { background: var(--gc-surface); border: 1px solid var(--gc-border); border-radius: 16px; padding: 32px; max-width: 500px; width: 90%; }
-.card-container h1 { font-size: 24px; font-weight: 500; color: var(--gc-accent); text-align: center; margin-bottom: 24px; }
-.form-group { margin-bottom: 16px; }
-.form-group label { display: block; margin-bottom: 6px; font-weight: 500; color: var(--gc-text); }
-.form-group input { width: 100%; padding: 10px; border: 1px solid var(--gc-border); border-radius: 6px; font-size: 16px; background: var(--gc-input-bg); color: var(--gc-text); }
-.form-group input:focus { border-color: var(--gc-accent); outline: none; }
-.btn { display: block; width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; background: var(--gc-accent); color: #fff; text-decoration: none; text-align: center; }
-.btn:disabled { opacity: 0.6; cursor: not-allowed; }
-.message { text-align: center; color: var(--gc-text-muted); margin: 16px 0; }
-.cards-list { margin-top: 24px; }
-.card-item { background: var(--gc-bg); border: 1px solid var(--gc-border); border-radius: 8px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
-.card-item .amount { font-weight: bold; color: var(--gc-accent); font-size: 20px; }
-.card-item .sender { color: var(--gc-text-muted); font-size: 14px; }
-.card-item a { color: var(--gc-accent); text-decoration: none; }
-.error { color: #f44336; text-align: center; margin: 16px 0; }

@@ -10,13 +10,215 @@
 <link rel="stylesheet" href="/ext-assets/giftcards_wasm/css/redeem.css">
 </head>
 <body>
-<div class="card-container" id="redeem-container">
-  <div class="loading" id="redeem-loading">Loading gift card...</div>
+<div id="q-app">
+  <div class="row justify-center">
+    <div class="col-12 col-md-7 col-lg-6 q-gutter-y-md">
+      <!-- Loading State -->
+      <q-card class="q-pa-lg" v-if="loading">
+        <q-card-section class="q-pa-none">
+          <div class="text-center">
+            <q-spinner color="primary" size="48px"></q-spinner>
+          </div>
+        </q-card-section>
+      </q-card>
+
+      <!-- Callback Error State -->
+      <q-card class="q-pa-lg" v-else-if="giftCard && giftCard.status === 'active' && error">
+        <q-card-section class="q-pa-none">
+          <div class="text-center">
+            <q-icon name="error_outline" color="negative" size="64px"></q-icon>
+            <h5 class="text-h6 q-mt-md">Redemption failed</h5>
+            <p class="text-body2 text-grey">
+              Redemption failed. Please scan the QR code again or try a different wallet.
+            </p>
+            <q-btn
+              unelevated
+              color="primary"
+              size="lg"
+              @click="clearError"
+            >
+              Try Again
+            </q-btn>
+          </div>
+        </q-card-section>
+      </q-card>
+
+      <!-- Active State -->
+      <q-card class="q-pa-lg" v-else-if="giftCard && giftCard.status === 'active'">
+        <q-card-section class="q-pa-none">
+          <div class="text-center">
+            <h5 class="text-h5 q-my-none">{{ giftCard.amount }} sats</h5>
+
+            <p class="text-body2 q-mt-md" v-if="giftCard.senderName">
+              From {{ giftCard.senderName }}
+            </p>
+
+            <p class="text-body2 q-mt-md" v-if="giftCard.message">
+              {{ giftCard.message }}
+            </p>
+
+            <p class="text-caption q-mt-sm" v-if="giftCard.recipientName">
+              For {{ giftCard.recipientName }}
+            </p>
+
+            <q-separator class="q-my-md"></q-separator>
+
+            <!-- bech32 / LUD17 toggle -->
+            <q-tabs
+              v-model="tab"
+              dense
+              class="text-grey"
+              active-color="primary"
+              indicator-color="primary"
+              align="justify"
+              inline-label
+            >
+              <q-tab name="bech32" icon="qr_code" label="bech32"></q-tab>
+              <q-tab name="lud17" icon="link" label="url (lud17)"></q-tab>
+            </q-tabs>
+
+            <!-- Branded card image (canvas composite, reflects active tab) -->
+            <div class="row justify-center q-mt-md" v-if="giftCard.hasDesign">
+              <canvas ref="brandedCanvas" class="branded-card-img"></canvas>
+            </div>
+
+            <!-- Plain QR code (no design) -->
+            <div class="row justify-center q-mt-md" v-else>
+              <canvas ref="qrCanvas" class="qr-canvas"></canvas>
+            </div>
+
+            <!-- Action buttons: NFC, print, download, copy -->
+            <div
+              class="qrcode__buttons row q-gutter-x-sm items-center justify-center no-wrap full-width q-mt-sm"
+            >
+              <q-btn
+                v-if="nfcSupported"
+                :disabled="nfcTagWriting"
+                flat
+                dense
+                class="text-grey"
+                icon="nfc"
+                @click="writeNfcTag"
+              >
+                <q-tooltip>Write NFC Tag</q-tooltip>
+              </q-btn>
+              <q-btn
+                flat
+                dense
+                class="text-grey"
+                icon="print"
+                @click="printCard"
+              >
+                <q-tooltip>Print</q-tooltip>
+              </q-btn>
+              <q-btn
+                flat
+                dense
+                class="text-grey"
+                icon="download"
+                @click="downloadCard"
+              >
+                <q-tooltip>Download</q-tooltip>
+              </q-btn>
+              <q-btn
+                flat
+                dense
+                class="text-grey"
+                :icon="copied ? 'check' : 'content_copy'"
+                @click="copyLnurl"
+              >
+                <q-tooltip>Copy LNURL</q-tooltip>
+              </q-btn>
+            </div>
+
+            <q-separator class="q-my-md"></q-separator>
+
+            <!-- LNURL string for manual copy -->
+            <div class="q-mb-md" v-if="lnurlString">
+              <p class="text-caption text-grey q-mb-xs">
+                No QR scanner? Copy this LNURL and paste it into your wallet:
+              </p>
+              <div class="row items-center no-wrap q-gutter-sm">
+                <div class="col">
+                  <q-input
+                    filled
+                    dense
+                    readonly
+                    :model-value="lnurlString"
+                    class="lnurl-input"
+                    input-class="lnurl-text"
+                  ></q-input>
+                </div>
+                <div class="col-auto">
+                  <q-btn
+                    flat
+                    dense
+                    color="primary"
+                    :icon="copied ? 'check' : 'content_copy'"
+                    :label="copied ? 'Copied' : 'Copy'"
+                    @click="copyLnurl"
+                  ></q-btn>
+                </div>
+              </div>
+            </div>
+
+            <q-separator class="q-my-md" v-if="lnurlString"></q-separator>
+
+            <p class="text-caption">
+              Expires: {{ giftCard.expiresAt ? formatDate(giftCard.expiresAt) : 'No expiration' }}
+            </p>
+          </div>
+        </q-card-section>
+      </q-card>
+
+      <!-- Redeemed State -->
+      <q-card class="q-pa-lg" v-else-if="giftCard && giftCard.status === 'redeemed'">
+        <q-card-section class="q-pa-none">
+          <div class="text-center">
+            <q-icon name="check_circle" color="positive" size="64px"></q-icon>
+            <h5 class="text-h6 q-mt-md">This gift card has been redeemed</h5>
+            <p class="text-body2 text-grey">
+              This card was already redeemed. If you believe this is an error, contact the sender.
+            </p>
+          </div>
+        </q-card-section>
+      </q-card>
+
+      <!-- Expired State -->
+      <q-card class="q-pa-lg" v-else-if="giftCard && giftCard.status === 'expired'">
+        <q-card-section class="q-pa-none">
+          <div class="text-center">
+            <q-icon name="schedule" color="warning" size="64px"></q-icon>
+            <h5 class="text-h6 q-mt-md">This gift card has expired</h5>
+            <p class="text-body2 text-grey">
+              The card expired on {{ formatDate(giftCard.expiredAt) }}. The sats have been returned to the issuer.
+            </p>
+          </div>
+        </q-card-section>
+      </q-card>
+
+      <!-- Not Found State -->
+      <q-card class="q-pa-lg" v-else>
+        <q-card-section class="q-pa-none">
+          <div class="text-center">
+            <q-icon name="error_outline" color="negative" size="64px"></q-icon>
+            <h5 class="text-h6 q-mt-md">Gift card not found</h5>
+            <p class="text-body2 text-grey">
+              This link may be invalid or the card may have been removed. Check the link and try again.
+            </p>
+          </div>
+        </q-card-section>
+      </q-card>
+    </div>
+  </div>
 </div>
 
+<script src="/ext-assets/giftcards_wasm/_lnbits/vue.global.prod.js"></script>
+<script src="/ext-assets/giftcards_wasm/_lnbits/quasar.umd.prod.js"></script>
 <script src="/ext-assets/giftcards_wasm/js/qrcode.min.js"></script>
 <script src="/ext-assets/giftcards_wasm/js/qr-helper.js"></script>
 <script src="/ext-assets/giftcards_wasm/js/bridge.js"></script>
+<script src="/ext-assets/giftcards_wasm/js/redeem-template.js"></script>
 <script src="/ext-assets/giftcards_wasm/js/redeem.js"></script>
 </body>
 </html>

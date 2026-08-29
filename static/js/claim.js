@@ -1,116 +1,116 @@
-// Gift Cards Claim Page — vanilla JS, CSP-safe
+// Gift Cards Claim Page — Vue 3 + Quasar, CSP-safe
 // Uses bridge (postMessage) instead of fetch (blocked by connect-src 'none')
-(function() {
+(function () {
   'use strict';
 
-  function $(id) { return document.getElementById(id); }
-  function show(el) { el.classList.remove('hidden'); }
-  function hide(el) { el.classList.add('hidden'); }
-  function escapeHtml(s) {
-    if (!s) return '';
-    return String(s).replace(/[&<>"']/g, function(c) {
-      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
-    });
-  }
-
   var API_BASE = '/api/v1/ext/giftcards_wasm';
-  function apiCall(method, path, body) {
-    var fullPath = API_BASE + path;
-    return window.LNbitsBridge.connect().then(function() {
-      return window.LNbitsBridge.callApi(method, fullPath, body);
-    });
+
+  async function apiCall(method, path, body) {
+    await window.LNbitsBridge.connect();
+    var result = await window.LNbitsBridge.callApi(method, API_BASE + path, body);
+    if (result && typeof result === 'object' && 'ok' in result && 'data' in result) {
+      return result.data;
+    }
+    return result;
   }
 
-  // Check if we have a magic token in the URL: /ext/giftcards_wasm/claim/{token}
-  var pathParts = window.location.pathname.split('/');
-  var magicToken = '';
-  for (var i = 0; i < pathParts.length; i++) {
-    if (pathParts[i] === 'claim' && i + 1 < pathParts.length) {
-      magicToken = pathParts[i + 1];
-      break;
-    }
-  }
+  var app = Vue.createApp({
+    render: window.CLAIM_RENDER_FN(),
+    data: function () {
+      return {
+        claimState: 'entry',  // entry, confirm, rate_limited, loading, cards, invalid
+        email: '',
+        pendingCards: [],
+        submitting: false
+      };
+    },
+    mounted: function () {
+      // Check if route has :magic_token — if so, verify the magic link
+      // URL pattern: /ext/giftcards_wasm/claim/{token}
+      var path = window.location.pathname;
+      var match = path.match(/\/claim\/(.+)$/);
+      if (match && match[1]) {
+        this.claimState = 'loading';
+        this.verifyMagicLink(match[1]);
+      }
+    },
+    methods: {
+      isValidEmail: function (val) {
+        var re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return re.test(val);
+      },
 
-  document.addEventListener('DOMContentLoaded', function() {
-    var btn = $('btn-claim');
-    if (btn) {
-      btn.addEventListener('click', submitClaim);
-    }
-    if (magicToken) {
-      verifyMagicToken(magicToken);
+      async submitClaim() {
+        if (!this.email || !this.isValidEmail(this.email)) {
+          return;
+        }
+        this.submitting = true;
+        try {
+          var res = await apiCall('POST', '/claim', { email: this.email });
+          // The WASM API always returns the same message regardless of
+          // whether cards were found or rate-limited (no email enumeration).
+          // Check for error field in case the bridge resolves with an error.
+          if (res && res.error && res.error.toLowerCase().indexOf('rate') !== -1) {
+            this.claimState = 'rate_limited';
+          } else {
+            // Always show confirmation (no email enumeration)
+            this.claimState = 'confirm';
+          }
+        } catch (error) {
+          // Network/bridge error — still show confirmation to avoid revealing state
+          this.claimState = 'confirm';
+        } finally {
+          this.submitting = false;
+        }
+      },
+
+      async verifyMagicLink(token) {
+        try {
+          var res = await apiCall('GET', '/claim/' + token, null);
+          // Check for error response (invalid/expired link)
+          if (res && (res.error || res.detail)) {
+            this.claimState = 'invalid';
+            return;
+          }
+          var cards = (res && res.cards) || [];
+          this.pendingCards = cards;
+          this.claimState = 'cards';
+        } catch (error) {
+          // Bridge rejection — invalid or expired link
+          this.claimState = 'invalid';
+        }
+      },
+
+      resetClaim: function () {
+        this.claimState = 'entry';
+        this.email = '';
+        this.pendingCards = [];
+      },
+
+      requestNewLink: function () {
+        // Navigate back to the claim entry page
+        var self = this;
+        window.LNbitsBridge.connect().then(function () {
+          return window.LNbitsBridge.replaceRoute('/ext/giftcards_wasm/claim');
+        }).catch(function () {
+          // Fallback: just reset the state
+          self.resetClaim();
+        });
+      },
+
+      formatDate: function (dateString) {
+        if (!dateString) return '';
+        var date;
+        if (/^\d+$/.test(dateString)) {
+          date = new Date(parseInt(dateString, 10) * 1000);
+        } else {
+          date = new Date(dateString);
+        }
+        return date.toLocaleDateString();
+      }
     }
   });
 
-  function submitClaim() {
-    var email = $('claim-email').value.trim();
-    if (!email) {
-      var err = $('claim-error');
-      err.textContent = 'Please enter your email.';
-      show(err);
-      return;
-    }
-    hide($('claim-error'));
-    $('btn-claim').disabled = true;
-    $('claim-result').textContent = 'Sending...';
-
-    apiCall('POST', '/claim', { email: email })
-      .then(function(data) {
-        $('btn-claim').disabled = false;
-        if (data.message) {
-          $('claim-result').textContent = data.message;
-        } else if (data.error) {
-          $('claim-result').textContent = data.error;
-        }
-      })
-      .catch(function(err) {
-        $('btn-claim').disabled = false;
-        $('claim-result').textContent = 'Error: ' + (err.message || err);
-      });
-  }
-
-  function verifyMagicToken(token) {
-    apiCall('GET', '/claim/' + token, null)
-      .then(function(data) {
-        if (data.error || data.detail) {
-          var err = $('claim-error');
-          err.textContent = data.error || data.detail;
-          show(err);
-          hide($('claim-form-view'));
-          return;
-        }
-        if (data.cards && data.cards.length > 0) {
-          renderClaimedCards(data.cards);
-        } else {
-          var err2 = $('claim-error');
-          err2.textContent = 'No pending gift cards found.';
-          show(err2);
-          hide($('claim-form-view'));
-        }
-      })
-      .catch(function(err) {
-        var e = $('claim-error');
-        e.textContent = 'Error: ' + (err.message || err);
-        show(e);
-        hide($('claim-form-view'));
-      });
-  }
-
-  function renderClaimedCards(cards) {
-    hide($('claim-form-view'));
-    var list = $('claim-cards-list');
-    var html = '';
-    cards.forEach(function(card) {
-      var redeemUrl = '/ext/giftcards_wasm/redeem/' + (card.rawToken || card.tokenHash || '');
-      html += '<div class="card-item">';
-      html += '<div>';
-      html += '<div class="amount">' + (card.amount || 0).toLocaleString() + ' sats</div>';
-      if (card.senderName) html += '<div class="sender">From: ' + escapeHtml(card.senderName) + '</div>';
-      if (card.message) html += '<div class="sender">' + escapeHtml(card.message) + '</div>';
-      html += '</div>';
-      html += '<a href="' + escapeHtml(redeemUrl) + '" class="btn btn-primary">Redeem</a>';
-      html += '</div>';
-    });
-    list.innerHTML = html;
-    show($('claim-cards-view'));
-  }
+  app.use(Quasar);
+  app.mount('#q-app');
 })();
