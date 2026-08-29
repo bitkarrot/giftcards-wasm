@@ -144,6 +144,21 @@
   </div>
 </div>
 
+<!-- Confirm Dialog -->
+<div class="dialog-overlay hidden" id="confirm-dialog">
+  <div class="dialog" style="max-width: 400px;">
+    <h2 id="confirm-title">Confirm</h2>
+    <p id="confirm-message" style="margin-bottom: 24px;"></p>
+    <div class="dialog-actions">
+      <button class="btn" id="btn-confirm-cancel">Cancel</button>
+      <button class="btn btn-danger" id="btn-confirm-ok">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Notification -->
+<div id="toast" class="hidden" style="position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: 8px; z-index: 2000; font-size: 14px; max-width: 400px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>
+
 <script src="/ext-assets/giftcards/js/qrcode.min.js"></script>
 <script src="/ext-assets/giftcards/js/qr-helper.js"></script>
 <script src="/ext-assets/giftcards/js/bridge.js"></script>

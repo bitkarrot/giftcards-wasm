@@ -112,6 +112,36 @@ test('view gift card list', async ({ page, request }) => {
   await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '05-card-list.png'), fullPage: true });
 });
 
+test('delete a gift card', async ({ page }) => {
+  await loginAndGoto(page, BASE_URL + '/ext/giftcards');
+  await page.waitForTimeout(5000);
+
+  const extFrame = page.frames().find(f => f.url().includes('ext-frame'));
+  if (!extFrame) return;
+
+  // Dismiss any LNbits dialogs/backdrops
+  await page.evaluate(() => {
+    document.querySelectorAll('.q-dialog__backdrop, .q-dialog').forEach(el => el.remove());
+  });
+  await page.waitForTimeout(500);
+
+  // Click the first delete button
+  const deleteBtn = await extFrame.$('button[data-action="delete"]').catch(() => null);
+  if (!deleteBtn) return;
+
+  await deleteBtn.click();
+  await page.waitForTimeout(500);
+
+  // Screenshot the confirm dialog
+  await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '09-delete-confirm.png'), fullPage: true });
+
+  // Click confirm
+  await extFrame.click('#btn-confirm-ok');
+  await page.waitForTimeout(3000);
+
+  await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '10-card-deleted.png'), fullPage: true });
+});
+
 test('view gift card detail with QR', async ({ page }) => {
   await loginAndGoto(page, BASE_URL + '/ext/giftcards');
   await page.waitForTimeout(5000);

@@ -23,6 +23,36 @@
     return new Date(n * 1000).toLocaleDateString();
   }
 
+  // --- Toast notification (replaces alert, since sandbox blocks alert) ---
+  var toastTimer = null;
+  function toast(message, type) {
+    var el = $('toast');
+    el.textContent = message;
+    el.style.background = type === 'error' ? '#e53935' : (type === 'success' ? '#2e7d32' : '#333');
+    el.style.color = '#fff';
+    el.classList.remove('hidden');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() { el.classList.add('hidden'); }, 4000);
+  }
+
+  // --- Confirm dialog (replaces confirm, since sandbox blocks confirm) ---
+  function confirmDialog(title, message, onConfirm) {
+    $('confirm-title').textContent = title;
+    $('confirm-message').textContent = message;
+    show($('confirm-dialog'));
+    var okBtn = $('btn-confirm-ok');
+    var cancelBtn = $('btn-confirm-cancel');
+    var cleanup = function() {
+      hide($('confirm-dialog'));
+      okBtn.removeEventListener('click', okHandler);
+      cancelBtn.removeEventListener('click', cancelHandler);
+    };
+    var okHandler = function() { cleanup(); onConfirm(); };
+    var cancelHandler = function() { cleanup(); };
+    okBtn.addEventListener('click', okHandler);
+    cancelBtn.addEventListener('click', cancelHandler);
+  }
+
   // --- API via bridge ---
   var API_BASE = '/api/v1/ext/giftcards';
   function apiCall(method, path, body) {
@@ -128,16 +158,17 @@
         }
       })
       .catch(function(err) {
-        alert('Error loading card: ' + (err.message || err));
+        toast('Error loading card: ' + (err.message || err), 'error');
       });
   }
 
   // --- Delete ---
   function deleteCard(cardId) {
-    if (!confirm('Delete this gift card?')) return;
-    apiCall('DELETE', '/cards/' + cardId, null)
-      .then(function() { loadCards(); })
-      .catch(function(err) { alert('Error: ' + (err.message || err)); });
+    confirmDialog('Delete Gift Card', 'Are you sure you want to delete this gift card? This cannot be undone.', function() {
+      apiCall('DELETE', '/cards/' + cardId, null)
+        .then(function() { toast('Gift card deleted', 'success'); loadCards(); })
+        .catch(function(err) { toast('Error: ' + (err.message || err), 'error'); });
+    });
   }
 
   // --- Create Dialog ---
@@ -158,13 +189,14 @@
     };
     var expiresAt = $('create-expires-at').value;
     if (expiresAt) body.expiresAt = expiresAt;
-    if (!body.amount || body.amount < 1) { alert('Amount must be positive'); return; }
+    if (!body.amount || body.amount < 1) { toast('Amount must be positive', 'error'); return; }
 
     $('btn-create-confirm').disabled = true;
     apiCall('POST', '/cards', body)
       .then(function(res) {
         hide($('create-dialog'));
         $('btn-create-confirm').disabled = false;
+        toast('Gift card created', 'success');
         loadCards();
         // Show the created card detail
         if (res && (res.cardId || res.id)) {
@@ -173,7 +205,7 @@
       })
       .catch(function(err) {
         $('btn-create-confirm').disabled = false;
-        alert('Error: ' + (err.message || err));
+        toast('Error: ' + (err.message || err), 'error');
       });
   }
 
@@ -199,11 +231,11 @@
       .then(function(res) {
         hide($('deliver-dialog'));
         $('btn-deliver-send').disabled = false;
-        alert(res.message || 'Email sent');
+        toast(res.message || 'Email sent', 'success');
       })
       .catch(function(err) {
         $('btn-deliver-send').disabled = false;
-        alert('Error: ' + (err.message || err));
+        toast('Error: ' + (err.message || err), 'error');
       });
   }
 
@@ -239,14 +271,87 @@
   }
 
   // --- Download image ---
+  // Sandbox blocks direct downloads, so we render the card + QR to a canvas
+  // and open it in a new tab via the bridge where the user can save it.
   function downloadCardImage() {
     if (!currentDetailCard) return;
-    var canvas = $('detail-qr');
-    if (!canvas) return;
+    var qrCanvas = $('detail-qr');
+    if (!qrCanvas) { toast('No QR code to download', 'error'); return; }
+
+    // Create a composite canvas with card info + QR
+    var canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 500;
+    var ctx = canvas.getContext('2d');
+
+    // Background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 400, 500);
+
+    // Border
+    ctx.strokeStyle = '#1976d2';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(10, 10, 380, 480);
+
+    // Title
+    ctx.fillStyle = '#1976d2';
+    ctx.font = 'bold 24px Roboto, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Gift Card', 200, 50);
+
+    // Amount
+    ctx.fillStyle = '#333';
+    ctx.font = 'bold 32px Roboto, sans-serif';
+    ctx.fillText(formatSats(currentDetailCard.amount), 200, 100);
+
+    // Details
+    ctx.font = '14px Roboto, sans-serif';
+    ctx.textAlign = 'left';
+    var y = 140;
+    ctx.fillText('To: ' + (currentDetailCard.recipientName || 'N/A'), 30, y); y += 24;
+    ctx.fillText('From: ' + (currentDetailCard.senderName || 'N/A'), 30, y); y += 24;
+    if (currentDetailCard.message) {
+      ctx.fillText('Message: ' + currentDetailCard.message, 30, y); y += 24;
+    }
+    y += 10;
+
+    // Draw QR code
+    ctx.drawImage(qrCanvas, 100, y, 200, 200);
+
+    // Redemption URL
+    y += 220;
+    ctx.font = '11px Roboto, sans-serif';
+    ctx.fillStyle = '#666';
+    ctx.textAlign = 'center';
+    var url = (currentDetailCard.redemptionUrl || '');
+    if (url.length > 55) url = url.substring(0, 52) + '...';
+    ctx.fillText(url, 200, y);
+
+    // Try direct download first (works if sandbox allows it)
+    var dataUrl = canvas.toDataURL('image/png');
     var link = document.createElement('a');
     link.download = 'giftcard-' + (currentDetailCard.cardId || currentDetailCard.id) + '.png';
-    link.href = canvas.toDataURL();
-    link.click();
+    link.href = dataUrl;
+
+    // Try click — if sandbox blocks it, fall back to bridge openInNewTab
+    var clicked = false;
+    try {
+      link.click();
+      clicked = true;
+    } catch(e) {}
+
+    // Also try via bridge as a fallback
+    if (!clicked) {
+      window.LNbitsBridge.connect().then(function() {
+        return window.LNbitsBridge.openInNewTab(dataUrl);
+      }).then(function() {
+        toast('Image opened in new tab - right-click to save', 'success');
+      }).catch(function() {
+        toast('Could not download. Right-click the QR code to save it.', 'error');
+      });
+    } else {
+      toast('Image downloaded', 'success');
+    }
   }
 
   // --- Init ---
