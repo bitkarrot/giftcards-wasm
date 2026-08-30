@@ -222,19 +222,16 @@
           this.$q.notify({ type: 'negative', message: 'No image to download.' });
           return;
         }
-        var link = document.createElement('a');
-        link.href = dataUrl;
-        link.download = 'giftcard_' + (this.tokenHash ? this.tokenHash.slice(0, 8) : 'card') + '.png';
-        document.body.appendChild(link);
-        var clicked = false;
-        try { link.click(); clicked = true; } catch (e) {}
-        document.body.removeChild(link);
-        if (!clicked) {
-          // Sandbox may block download — try opening in new tab via bridge
-          var self = this;
-          window.LNbitsBridge.connect().then(function () {
-            return window.LNbitsBridge.openInNewTab(dataUrl);
-          }).then(function () {
+        var self = this;
+        var filename = 'giftcard_' + (this.tokenHash ? this.tokenHash.slice(0, 8) : 'card') + '.png';
+        var base64 = dataUrl.split(',')[1];
+        window.LNbitsBridge.connect().then(function () {
+          return window.LNbitsBridge.download(filename, base64, 'image/png', 'base64');
+        }).then(function () {
+          self.$q.notify({ type: 'positive', message: 'Card image downloaded.' });
+        }).catch(function () {
+          // Fallback: try opening in new tab via bridge
+          window.LNbitsBridge.openInNewTab(dataUrl).then(function () {
             self.$q.notify({
               type: 'positive',
               message: 'Image opened in new tab — right-click to save.'
@@ -245,7 +242,7 @@
               message: 'Could not download. Right-click the QR code to save it.'
             });
           });
-        }
+        });
       },
 
       getCardDataUrl: function () {

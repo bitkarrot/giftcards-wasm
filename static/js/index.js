@@ -1097,8 +1097,16 @@
             data.redemptionUrl = window.location.origin + data.redemptionUrl;
           }
           this.detailDialog.card = data;
-          if (data.tokenHash) {
-            this.detailDialog.cardImageUrl = API_BASE + '/cards/' + data.tokenHash + '/image?t=' + Date.now();
+          // Construct the template image URL from the card's design data
+          var design = data.design || {};
+          var templateName = design.templateName || data.templateName || '';
+          var templateAssetId = design.templateAssetId || data.templateAssetId || '';
+          if (templateName === 'custom' && templateAssetId) {
+            this.detailDialog.cardImageUrl = API_BASE + '/cards/template/' + templateAssetId;
+          } else if (templateName && templateName !== 'portrait' && templateName !== 'landscape' && templateName !== 'none' && templateName !== 'custom') {
+            this.detailDialog.cardImageUrl = IMG_BASE + '/template_' + templateName + '.png';
+          } else if (templateName === 'portrait' || templateName === 'landscape') {
+            this.detailDialog.cardImageUrl = IMG_BASE + '/template_' + templateName + '.png';
           }
         } catch (error) {
           console.error('Failed to load card details:', error);
