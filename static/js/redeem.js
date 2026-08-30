@@ -4,7 +4,7 @@
   'use strict';
 
   var API_BASE = '/api/v1/ext/giftcards_wasm';
-  var IMG_BASE = '/ext-assets/giftcards_wasm/img';
+  var IMG_BASE = '/ext-assets/giftcards_wasm/image';
 
   // Sample template dimensions (must match index.js)
   var SAMPLE_TEMPLATES = [
@@ -330,27 +330,49 @@
 
       _drawQrAndTextOnCard: function (ctx, tw, th) {
         var self = this;
-        // Draw QR code
-        var qrSize = 200;
-        var qrX = Math.round(0.1 * tw);
-        var qrY = Math.round(0.7 * th);
+
+        // Read QR/text placement from the card's stored config (if available),
+        // falling back to defaults that match the card designer defaults.
+        var qr = (self.giftCard.qrConfig && typeof self.giftCard.qrConfig === 'object') ? self.giftCard.qrConfig : {};
+        var tc = (self.giftCard.textConfig && typeof self.giftCard.textConfig === 'object') ? self.giftCard.textConfig : {};
+
+        var qrSize = Math.round(qr.qr_size || 200);
+        var qrX = Math.round((qr.qr_x_frac != null ? qr.qr_x_frac : 0.1) * tw);
+        var qrY = Math.round((qr.qr_y_frac != null ? qr.qr_y_frac : 0.7) * th);
+
+        var fontSize = tc.font_size || 24;
+        var fontFamily = tc.font_family || 'DejaVuSans';
+        var fontColor = tc.font_color || '#000000';
+        var textAlign = tc.text_align || 'left';
+        var textX = Math.round((tc.text_x_frac != null ? tc.text_x_frac : 0.1) * tw);
+        var textY = Math.round((tc.text_y_frac != null ? tc.text_y_frac : 0.1) * th);
+        var showAmount = tc.show_amount !== false;
+        var showRecipient = tc.show_recipient !== false;
+        var showMessage = tc.show_message !== false;
+
+        // Map font family names to CSS font-family strings
+        var cssFontFamily = fontFamily;
+        if (fontFamily === 'DejaVuSans') cssFontFamily = 'sans-serif';
+        else if (fontFamily === 'DejaVuSerif') cssFontFamily = 'serif';
+        else if (fontFamily === 'DejaVuSansMono') cssFontFamily = 'monospace';
+
         var qrCanvas = document.createElement('canvas');
         if (window.QRCode) {
           window.QRCode.toCanvas(qrCanvas, self.lnurl, { width: qrSize }, function () {
             ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
 
             // Draw text overlay
-            ctx.font = '24px sans-serif';
-            ctx.fillStyle = '#000000';
-            ctx.textAlign = 'left';
-            var textX = Math.round(0.1 * tw);
-            var textY = Math.round(0.1 * th);
-            var lineHeight = 24 * 1.3;
-            var y = textY + 24;
+            ctx.font = fontSize + 'px ' + cssFontFamily;
+            ctx.fillStyle = fontColor;
+            ctx.textAlign = textAlign;
+            var lineHeight = fontSize * 1.3;
+            var y = textY + fontSize;
 
-            ctx.fillText((self.giftCard.amount || 0) + ' sats', textX, y);
-            y += lineHeight;
-            if (self.giftCard.recipientName) {
+            if (showAmount) {
+              ctx.fillText((self.giftCard.amount || 0) + ' sats', textX, y);
+              y += lineHeight;
+            }
+            if (showRecipient && self.giftCard.recipientName) {
               ctx.fillText('For: ' + self.giftCard.recipientName, textX, y);
               y += lineHeight;
             }
@@ -358,7 +380,7 @@
               ctx.fillText('From: ' + self.giftCard.senderName, textX, y);
               y += lineHeight;
             }
-            if (self.giftCard.message) {
+            if (showMessage && self.giftCard.message) {
               ctx.fillText(self.giftCard.message, textX, y);
             }
 

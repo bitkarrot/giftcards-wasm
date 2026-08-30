@@ -865,6 +865,14 @@ impl Guest for Component {
         // hasDesign is true if there's a non-empty template name or designJson
         let has_design = has_design || !template_name.is_empty();
 
+        // Parse qrConfig and textConfig (stored as JSON strings) so the
+        // redeem page can position the QR code and text overlay at the
+        // same coordinates the user chose in the card designer.
+        let qr_config = card.get("qrConfig").and_then(|v| v.as_str())
+            .and_then(|s| serde_json::from_str::<Value>(s).ok());
+        let text_config = card.get("textConfig").and_then(|v| v.as_str())
+            .and_then(|s| serde_json::from_str::<Value>(s).ok());
+
         ok(json!({
             "status": status,
             "amount": card.get("amount").and_then(|v| v.as_u64()).unwrap_or(0),
@@ -876,6 +884,8 @@ impl Guest for Component {
             "hasDesign": has_design,
             "templateName": template_name,
             "templateAssetId": template_asset_id,
+            "qrConfig": qr_config,
+            "textConfig": text_config,
         }))
     }
 
