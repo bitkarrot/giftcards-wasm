@@ -204,23 +204,30 @@
       },
 
       printCard: function () {
+        var dataUrl = this.getCardDataUrl();
+        if (!dataUrl) {
+          this.$q.notify({ type: 'negative', message: 'No image to print.' });
+          return;
+        }
+        // The sandbox blocks window.print() (no allow-modals). Show the
+        // image in a dialog with a Print button and instructions.
+        this.imageDialogUrl = dataUrl;
+        this.imageDialogShow = true;
+      },
+
+      printImage: function () {
+        // Try window.print() — may be blocked by sandbox
         try {
           window.print();
         } catch (e) {
-          // Sandbox may block window.print() — try opening in new tab via bridge
-          var self = this;
-          var dataUrl = this.getCardDataUrl();
-          if (dataUrl) {
-            window.LNbitsBridge.connect().then(function () {
-              return window.LNbitsBridge.openInNewTab(dataUrl);
-            }).catch(function () {
-              self.$q.notify({
-                type: 'negative',
-                message: 'Printing is not available in this context.'
-              });
-            });
-          }
+          // Shouldn't happen (sandbox makes print a no-op, not throw)
         }
+        // Show instructions since print likely didn't work
+        this.$q.notify({
+          type: 'info',
+          message: 'If print didn\'t open, right-click the image → "Open image in new tab" → Ctrl+P',
+          timeout: 5000
+        });
       },
 
       downloadCard: function () {

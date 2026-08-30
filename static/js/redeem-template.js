@@ -337,7 +337,7 @@ return function render(_ctx, _cache) {
                       _: 1 /* STABLE */
                     })
                   ], 2112 /* STABLE_FRAGMENT, DEV_ROOT_FRAGMENT */)),
-      _createCommentVNode(" Image Download Dialog "),
+      _createCommentVNode(" Image Download / Print Dialog "),
       _createVNode(_component_q_dialog, {
         modelValue: _ctx.imageDialogShow,
         "onUpdate:modelValue": $event => ((_ctx.imageDialogShow) = $event)
@@ -350,7 +350,7 @@ return function render(_ctx, _cache) {
             default: _withCtx(() => [
               _createElementVNode("div", { class: "q-gutter-md" }, [
                 _createElementVNode("h6", { class: "text-subtitle1 q-my-none" }, "Gift Card Image"),
-                _createElementVNode("p", { class: "text-body2" }, " Right-click the image and select \"Save image as…\" to save it. "),
+                _createElementVNode("p", { class: "text-body2" }, " Right-click the image and select \"Save image as…\" to save it, or \"Open image in new tab\" then Ctrl+P to print. "),
                 _createElementVNode("div", { class: "text-center" }, [
                   _createElementVNode("img", {
                     src: _ctx.imageDialogUrl,
@@ -358,14 +358,21 @@ return function render(_ctx, _cache) {
                     alt: "Gift card"
                   }, null, 8 /* PROPS */, ["src"])
                 ]),
-                _createElementVNode("div", { class: "row justify-end" }, [
+                _createElementVNode("div", { class: "row justify-end q-gutter-sm" }, [
                   _withDirectives(_createVNode(_component_q_btn, {
                     flat: "",
                     label: "Close",
                     color: "grey"
                   }, null, 512 /* NEED_PATCH */), [
                     [_directive_close_popup]
-                  ])
+                  ]),
+                  _createVNode(_component_q_btn, {
+                    unelevated: "",
+                    color: "primary",
+                    icon: "print",
+                    label: "Print",
+                    onClick: _ctx.printImage
+                  }, null, 8 /* PROPS */, ["onClick"])
                 ])
               ])
             ]),
