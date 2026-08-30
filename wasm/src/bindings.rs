@@ -682,6 +682,81 @@ pub mod lnbits {
                         .finish()
                 }
             }
+            /// --- Create Invoice (for internal debit/credit) ---
+            #[derive(Clone)]
+            pub struct CreateInvoiceRequest {
+                pub wallet_id: _rt::String,
+                pub amount: u64,
+                pub currency: Option<_rt::String>,
+                pub memo: _rt::String,
+                pub tag: _rt::String,
+            }
+            impl ::core::fmt::Debug for CreateInvoiceRequest {
+                fn fmt(
+                    &self,
+                    f: &mut ::core::fmt::Formatter<'_>,
+                ) -> ::core::fmt::Result {
+                    f.debug_struct("CreateInvoiceRequest")
+                        .field("wallet-id", &self.wallet_id)
+                        .field("amount", &self.amount)
+                        .field("currency", &self.currency)
+                        .field("memo", &self.memo)
+                        .field("tag", &self.tag)
+                        .finish()
+                }
+            }
+            #[derive(Clone)]
+            pub struct CreateInvoiceResponse {
+                pub payment_hash: _rt::String,
+                pub payment_request: _rt::String,
+                pub checking_id: _rt::String,
+            }
+            impl ::core::fmt::Debug for CreateInvoiceResponse {
+                fn fmt(
+                    &self,
+                    f: &mut ::core::fmt::Formatter<'_>,
+                ) -> ::core::fmt::Result {
+                    f.debug_struct("CreateInvoiceResponse")
+                        .field("payment-hash", &self.payment_hash)
+                        .field("payment-request", &self.payment_request)
+                        .field("checking-id", &self.checking_id)
+                        .finish()
+                }
+            }
+            /// --- Update Wallet Balance (direct debit/credit) ---
+            #[derive(Clone)]
+            pub struct UpdateWalletBalanceRequest {
+                pub wallet_id: _rt::String,
+                pub amount_sat: i64,
+            }
+            impl ::core::fmt::Debug for UpdateWalletBalanceRequest {
+                fn fmt(
+                    &self,
+                    f: &mut ::core::fmt::Formatter<'_>,
+                ) -> ::core::fmt::Result {
+                    f.debug_struct("UpdateWalletBalanceRequest")
+                        .field("wallet-id", &self.wallet_id)
+                        .field("amount-sat", &self.amount_sat)
+                        .finish()
+                }
+            }
+            #[repr(C)]
+            #[derive(Clone, Copy)]
+            pub struct UpdateWalletBalanceResponse {
+                pub ok: bool,
+                pub balance_msat: i64,
+            }
+            impl ::core::fmt::Debug for UpdateWalletBalanceResponse {
+                fn fmt(
+                    &self,
+                    f: &mut ::core::fmt::Formatter<'_>,
+                ) -> ::core::fmt::Result {
+                    f.debug_struct("UpdateWalletBalanceResponse")
+                        .field("ok", &self.ok)
+                        .field("balance-msat", &self.balance_msat)
+                        .finish()
+                }
+            }
             #[derive(Clone)]
             pub struct WalletBalanceRequest {
                 pub wallet_id: _rt::String,
@@ -1561,6 +1636,173 @@ pub mod lnbits {
                 }
             }
             #[allow(unused_unsafe, clippy::all)]
+            pub fn create_invoice(req: &CreateInvoiceRequest) -> CreateInvoiceResponse {
+                unsafe {
+                    #[cfg_attr(target_pointer_width = "64", repr(align(8)))]
+                    #[cfg_attr(target_pointer_width = "32", repr(align(4)))]
+                    struct RetArea(
+                        [::core::mem::MaybeUninit<
+                            u8,
+                        >; 6 * ::core::mem::size_of::<*const u8>()],
+                    );
+                    let mut ret_area = RetArea(
+                        [::core::mem::MaybeUninit::uninit(); 6
+                            * ::core::mem::size_of::<*const u8>()],
+                    );
+                    let CreateInvoiceRequest {
+                        wallet_id: wallet_id0,
+                        amount: amount0,
+                        currency: currency0,
+                        memo: memo0,
+                        tag: tag0,
+                    } = req;
+                    let vec1 = wallet_id0;
+                    let ptr1 = vec1.as_ptr().cast::<u8>();
+                    let len1 = vec1.len();
+                    let (result3_0, result3_1, result3_2) = match currency0 {
+                        Some(e) => {
+                            let vec2 = e;
+                            let ptr2 = vec2.as_ptr().cast::<u8>();
+                            let len2 = vec2.len();
+                            (1i32, ptr2.cast_mut(), len2)
+                        }
+                        None => (0i32, ::core::ptr::null_mut(), 0usize),
+                    };
+                    let vec4 = memo0;
+                    let ptr4 = vec4.as_ptr().cast::<u8>();
+                    let len4 = vec4.len();
+                    let vec5 = tag0;
+                    let ptr5 = vec5.as_ptr().cast::<u8>();
+                    let len5 = vec5.len();
+                    let ptr6 = ret_area.0.as_mut_ptr().cast::<u8>();
+                    #[cfg(target_arch = "wasm32")]
+                    #[link(wasm_import_module = "lnbits:extension/host")]
+                    unsafe extern "C" {
+                        #[link_name = "create-invoice"]
+                        fn wit_import7(
+                            _: *mut u8,
+                            _: usize,
+                            _: i64,
+                            _: i32,
+                            _: *mut u8,
+                            _: usize,
+                            _: *mut u8,
+                            _: usize,
+                            _: *mut u8,
+                            _: usize,
+                            _: *mut u8,
+                        );
+                    }
+                    #[cfg(not(target_arch = "wasm32"))]
+                    unsafe extern "C" fn wit_import7(
+                        _: *mut u8,
+                        _: usize,
+                        _: i64,
+                        _: i32,
+                        _: *mut u8,
+                        _: usize,
+                        _: *mut u8,
+                        _: usize,
+                        _: *mut u8,
+                        _: usize,
+                        _: *mut u8,
+                    ) {
+                        unreachable!()
+                    }
+                    unsafe {
+                        wit_import7(
+                            ptr1.cast_mut(),
+                            len1,
+                            _rt::as_i64(amount0),
+                            result3_0,
+                            result3_1,
+                            result3_2,
+                            ptr4.cast_mut(),
+                            len4,
+                            ptr5.cast_mut(),
+                            len5,
+                            ptr6,
+                        )
+                    };
+                    let l8 = *ptr6.add(0).cast::<*mut u8>();
+                    let l9 = *ptr6
+                        .add(::core::mem::size_of::<*const u8>())
+                        .cast::<usize>();
+                    let len10 = l9;
+                    let bytes10 = _rt::Vec::from_raw_parts(l8.cast(), len10, len10);
+                    let l11 = *ptr6
+                        .add(2 * ::core::mem::size_of::<*const u8>())
+                        .cast::<*mut u8>();
+                    let l12 = *ptr6
+                        .add(3 * ::core::mem::size_of::<*const u8>())
+                        .cast::<usize>();
+                    let len13 = l12;
+                    let bytes13 = _rt::Vec::from_raw_parts(l11.cast(), len13, len13);
+                    let l14 = *ptr6
+                        .add(4 * ::core::mem::size_of::<*const u8>())
+                        .cast::<*mut u8>();
+                    let l15 = *ptr6
+                        .add(5 * ::core::mem::size_of::<*const u8>())
+                        .cast::<usize>();
+                    let len16 = l15;
+                    let bytes16 = _rt::Vec::from_raw_parts(l14.cast(), len16, len16);
+                    let result17 = CreateInvoiceResponse {
+                        payment_hash: _rt::string_lift(bytes10),
+                        payment_request: _rt::string_lift(bytes13),
+                        checking_id: _rt::string_lift(bytes16),
+                    };
+                    result17
+                }
+            }
+            #[allow(unused_unsafe, clippy::all)]
+            pub fn update_wallet_balance(
+                req: &UpdateWalletBalanceRequest,
+            ) -> UpdateWalletBalanceResponse {
+                unsafe {
+                    #[repr(align(8))]
+                    struct RetArea([::core::mem::MaybeUninit<u8>; 16]);
+                    let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 16]);
+                    let UpdateWalletBalanceRequest {
+                        wallet_id: wallet_id0,
+                        amount_sat: amount_sat0,
+                    } = req;
+                    let vec1 = wallet_id0;
+                    let ptr1 = vec1.as_ptr().cast::<u8>();
+                    let len1 = vec1.len();
+                    let ptr2 = ret_area.0.as_mut_ptr().cast::<u8>();
+                    #[cfg(target_arch = "wasm32")]
+                    #[link(wasm_import_module = "lnbits:extension/host")]
+                    unsafe extern "C" {
+                        #[link_name = "update-wallet-balance"]
+                        fn wit_import3(_: *mut u8, _: usize, _: i64, _: *mut u8);
+                    }
+                    #[cfg(not(target_arch = "wasm32"))]
+                    unsafe extern "C" fn wit_import3(
+                        _: *mut u8,
+                        _: usize,
+                        _: i64,
+                        _: *mut u8,
+                    ) {
+                        unreachable!()
+                    }
+                    unsafe {
+                        wit_import3(
+                            ptr1.cast_mut(),
+                            len1,
+                            _rt::as_i64(amount_sat0),
+                            ptr2,
+                        )
+                    };
+                    let l4 = i32::from(*ptr2.add(0).cast::<u8>());
+                    let l5 = *ptr2.add(8).cast::<i64>();
+                    let result6 = UpdateWalletBalanceResponse {
+                        ok: _rt::bool_lift(l4 as u8),
+                        balance_msat: l5,
+                    };
+                    result6
+                }
+            }
+            #[allow(unused_unsafe, clippy::all)]
             pub fn wallet_balance(req: &WalletBalanceRequest) -> WalletBalanceResponse {
                 unsafe {
                     #[repr(align(8))]
@@ -2208,9 +2450,9 @@ pub(crate) use __export_giftcards_impl as export;
 )]
 #[doc(hidden)]
 #[allow(clippy::octal_escapes)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 2111] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xbf\x0f\x01A\x02\x01\
-A\x11\x01BM\x01r\x02\x05tables\x02ids\x04\0\x13storage-get-request\x03\0\0\x01ks\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 2441] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\x89\x12\x01A\x02\x01\
+A\x11\x01BY\x01r\x02\x05tables\x02ids\x04\0\x13storage-get-request\x03\0\0\x01ks\
 \x01r\x01\x09data-json\x02\x04\0\x14storage-get-response\x03\0\x03\x01r\x02\x05t\
 ables\x02ids\x04\0\x1astorage-get-public-request\x03\0\x05\x01r\x02\x05tables\x09\
 data-json\x02\x04\0\x13storage-set-request\x03\0\x07\x01r\x01\x02ok\x7f\x04\0\x14\
@@ -2224,26 +2466,32 @@ onse\x03\0\x11\x01r\x04\x05tables\x0cfilters-json\x02\x05limity\x06offsety\x04\0
 ayment-requests\x07max-sat\x15\x0bdescriptions\x04\0\x13pay-invoice-request\x03\0\
 \x16\x01r\x09\x02ok\x7f\x05error\x02\x0bchecking-id\x02\x0cpayment-hash\x02\x06s\
 tatus\x02\x0bamount-msatw\x08fee-msatw\x07pending\x7f\x07success\x7f\x04\0\x14pa\
-y-invoice-response\x03\0\x18\x01r\x01\x09wallet-ids\x04\0\x16wallet-balance-requ\
-est\x03\0\x1a\x01r\x0a\x09wallet-ids\x04names\x08currency\x02\x0cbalance-msatw\x0b\
-balance-satw\x11withdrawable-msatw\x10withdrawable-satw\x10fee-reserve-msatw\x0f\
-fee-reserve-satw\x11can-send-payments\x7f\x04\0\x17wallet-balance-response\x03\0\
-\x1c\x01r\x03\x02ids\x04names\x08currency\x02\x04\0\x0ewallet-summary\x03\0\x1e\x01\
-p\x1f\x01r\x01\x07wallets\x20\x04\0\x15list-wallets-response\x03\0!\x01o\x02ss\x01\
-p#\x01r\x04\x06methods\x03urls\x07headers$\x04body\x02\x04\0\x13http-request-par\
-ams\x03\0%\x01r\x03\x0bstatus-codey\x07headers$\x04bodys\x04\0\x12http-response-\
-data\x03\0'\x01r\x01\x09timestampw\x04\0\x0cnow-response\x03\0)\x01r\x01\x06pref\
-ixs\x04\0\x11random-id-request\x03\0+\x01r\x01\x02ids\x04\0\x12random-id-respons\
-e\x03\0-\x01r\x02\x05levels\x07messages\x04\0\x0blog-request\x03\0/\x01r\x01\x02\
-ok\x7f\x04\0\x0clog-response\x03\01\x01@\x01\x03req\x01\0\x04\x04\0\x0bstorage-g\
-et\x013\x01@\x01\x03req\x06\0\x04\x04\0\x12storage-get-public\x014\x01@\x01\x03r\
-eq\x08\0\x0a\x04\0\x0bstorage-set\x015\x01@\x01\x03req\x0c\0\x0e\x04\0\x0estorag\
-e-delete\x016\x01@\x01\x03req\x10\0\x12\x04\0\x15storage-get-paginated\x017\x01@\
-\x01\x03req\x14\0\x12\x04\0\x1cstorage-get-public-paginated\x018\x01@\x01\x03req\
-\x17\0\x19\x04\0\x0bpay-invoice\x019\x01@\x01\x03req\x1b\0\x1d\x04\0\x0ewallet-b\
-alance\x01:\x01@\0\0\"\x04\0\x11list-user-wallets\x01;\x01@\x01\x03req&\0(\x04\0\
-\x0chttp-request\x01<\x01@\0\0*\x04\0\x03now\x01=\x01@\x01\x03req,\0.\x04\0\x09r\
-andom-id\x01>\x01@\x01\x03req0\02\x04\0\x03log\x01?\x03\0\x15lnbits:extension/ho\
+y-invoice-response\x03\0\x18\x01r\x05\x09wallet-ids\x06amountw\x08currency\x02\x04\
+memos\x03tags\x04\0\x16create-invoice-request\x03\0\x1a\x01r\x03\x0cpayment-hash\
+s\x0fpayment-requests\x0bchecking-ids\x04\0\x17create-invoice-response\x03\0\x1c\
+\x01r\x02\x09wallet-ids\x0aamount-satx\x04\0\x1dupdate-wallet-balance-request\x03\
+\0\x1e\x01r\x02\x02ok\x7f\x0cbalance-msatx\x04\0\x1eupdate-wallet-balance-respon\
+se\x03\0\x20\x01r\x01\x09wallet-ids\x04\0\x16wallet-balance-request\x03\0\"\x01r\
+\x0a\x09wallet-ids\x04names\x08currency\x02\x0cbalance-msatw\x0bbalance-satw\x11\
+withdrawable-msatw\x10withdrawable-satw\x10fee-reserve-msatw\x0ffee-reserve-satw\
+\x11can-send-payments\x7f\x04\0\x17wallet-balance-response\x03\0$\x01r\x03\x02id\
+s\x04names\x08currency\x02\x04\0\x0ewallet-summary\x03\0&\x01p'\x01r\x01\x07wall\
+ets(\x04\0\x15list-wallets-response\x03\0)\x01o\x02ss\x01p+\x01r\x04\x06methods\x03\
+urls\x07headers,\x04body\x02\x04\0\x13http-request-params\x03\0-\x01r\x03\x0bsta\
+tus-codey\x07headers,\x04bodys\x04\0\x12http-response-data\x03\0/\x01r\x01\x09ti\
+mestampw\x04\0\x0cnow-response\x03\01\x01r\x01\x06prefixs\x04\0\x11random-id-req\
+uest\x03\03\x01r\x01\x02ids\x04\0\x12random-id-response\x03\05\x01r\x02\x05level\
+s\x07messages\x04\0\x0blog-request\x03\07\x01r\x01\x02ok\x7f\x04\0\x0clog-respon\
+se\x03\09\x01@\x01\x03req\x01\0\x04\x04\0\x0bstorage-get\x01;\x01@\x01\x03req\x06\
+\0\x04\x04\0\x12storage-get-public\x01<\x01@\x01\x03req\x08\0\x0a\x04\0\x0bstora\
+ge-set\x01=\x01@\x01\x03req\x0c\0\x0e\x04\0\x0estorage-delete\x01>\x01@\x01\x03r\
+eq\x10\0\x12\x04\0\x15storage-get-paginated\x01?\x01@\x01\x03req\x14\0\x12\x04\0\
+\x1cstorage-get-public-paginated\x01@\x01@\x01\x03req\x17\0\x19\x04\0\x0bpay-inv\
+oice\x01A\x01@\x01\x03req\x1b\0\x1d\x04\0\x0ecreate-invoice\x01B\x01@\x01\x03req\
+\x1f\0!\x04\0\x15update-wallet-balance\x01C\x01@\x01\x03req#\0%\x04\0\x0ewallet-\
+balance\x01D\x01@\0\0*\x04\0\x11list-user-wallets\x01E\x01@\x01\x03req.\00\x04\0\
+\x0chttp-request\x01F\x01@\0\02\x04\0\x03now\x01G\x01@\x01\x03req4\06\x04\0\x09r\
+andom-id\x01H\x01@\x01\x03req8\0:\x04\0\x03log\x01I\x03\0\x15lnbits:extension/ho\
 st\x05\0\x01@\x01\x07payloads\0s\x04\0\x0bcreate-card\x01\x01\x04\0\x09get-cards\
 \x01\x01\x04\0\x08get-card\x01\x01\x04\0\x0bupdate-card\x01\x01\x04\0\x0bdelete-\
 card\x01\x01\x04\0\x0bbulk-create\x01\x01\x04\0\x0bbulk-delete\x01\x01\x04\0\x0d\

@@ -113,12 +113,24 @@ fn h_wallet_balance(wallet_id: &str) -> Option<Value> {
 }
 
 /// Adjust a wallet's balance by a signed amount of sats.
-/// NOTE: The host runtime does not currently implement update-wallet-balance.
-/// Sats lock/reclaim is disabled until the host adds this function.
-/// Returns true (no-op) to avoid blocking card creation/deletion.
-fn h_update_wallet_balance(_wallet_id: &str, _amount_sat: i64) -> bool {
-    h_log("info", &format!("update_wallet_balance is not implemented by host; skipping {} sats for {}", _amount_sat, _wallet_id));
-    true
+/// Negative = debit (lock sats), positive = credit (reclaim sats).
+/// Uses the host's update_wallet_balance function, which mirrors the
+/// Python extension's update_wallet_balance service.
+fn h_update_wallet_balance(wallet_id: &str, amount_sat: i64) -> bool {
+    if amount_sat == 0 {
+        return true;
+    }
+    let resp = host::update_wallet_balance(&host::UpdateWalletBalanceRequest {
+        wallet_id: wallet_id.to_string(),
+        amount_sat,
+    });
+    if !resp.ok {
+        h_log("error", &format!(
+            "update_wallet_balance failed: {} sats for wallet {}",
+            amount_sat, wallet_id
+        ));
+    }
+    resp.ok
 }
 
 fn h_list_wallets() -> Vec<(String, String)> {

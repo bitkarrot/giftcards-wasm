@@ -79,6 +79,32 @@ interface host {
     }
     pay-invoice: func(req: pay-invoice-request) -> pay-invoice-response;
 
+    // --- Create Invoice (for internal debit/credit) ---
+    record create-invoice-request {
+        wallet-id: string,
+        amount: u64,
+        currency: option<string>,
+        memo: string,
+        tag: string,
+    }
+    record create-invoice-response {
+        payment-hash: string,
+        payment-request: string,
+        checking-id: string,
+    }
+    create-invoice: func(req: create-invoice-request) -> create-invoice-response;
+
+    // --- Update Wallet Balance (direct debit/credit) ---
+    record update-wallet-balance-request {
+        wallet-id: string,
+        amount-sat: s64,
+    }
+    record update-wallet-balance-response {
+        ok: bool,
+        balance-msat: s64,
+    }
+    update-wallet-balance: func(req: update-wallet-balance-request) -> update-wallet-balance-response;
+
     record wallet-balance-request {
         wallet-id: string,
     }
