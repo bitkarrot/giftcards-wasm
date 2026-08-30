@@ -20,6 +20,17 @@
         giftCards: [],
         loading: false,
         isDarkMode: false,
+        csvDialog: {
+          show: false,
+          filename: '',
+          content: '',
+          copied: false
+        },
+        imageDialog: {
+          show: false,
+          url: '',
+          filename: ''
+        },
         walletBalance: 0,
         // Wallet info from bridge context (no g.user global in WASM)
         walletId: null,
@@ -717,18 +728,14 @@
             }
           }
 
-          // Send PNG data through the bridge for download (CSP blocks blob: URLs)
+          // The extension sandbox blocks file downloads. Show the image
+          // in a dialog where the user can right-click > "Save image as…"
           var dataUrl = canvas.toDataURL('image/png');
-          var base64 = dataUrl.split(',')[1];
-          await window.LNbitsBridge.download(
-            'giftcard_' + card.id + '.png',
-            base64,
-            'image/png',
-            'base64'
-          );
-          this.$q.notify({ message: 'Gift card image downloaded', type: 'positive' });
+          this.imageDialog.url = dataUrl;
+          this.imageDialog.filename = 'giftcard_' + card.id + '.png';
+          this.imageDialog.show = true;
         } catch (error) {
-          console.error('Download failed:', error);
+          console.error('Printable generation failed:', error);
           this.notifyError(error);
         }
       },
@@ -786,9 +793,26 @@
 
         var suffix = scope === 'selected' ? 'selected' : 'filtered';
         var filename = 'giftcards_' + suffix + '_' + new Date().toISOString().split('T')[0] + '.csv';
+
+        // The extension iframe sandbox blocks file downloads (no
+        // allow-downloads, no allow-same-origin) and the parent's
+        // navigation.open_new_tab only allows HTTP/HTTPS URLs (not
+        // data: URIs). As a workaround, show the CSV in a dialog with
+        // a "Copy to clipboard" button so the user can paste it into
+        // a text file.
+        this.csvDialog.filename = filename;
+        this.csvDialog.content = csv;
+        this.csvDialog.copied = false;
+        this.csvDialog.show = true;
+      },
+
+      async copyCsvToClipboard() {
         try {
-          await window.LNbitsBridge.download(filename, csv, 'text/csv');
-          this.$q.notify({ message: 'CSV exported successfully', type: 'positive' });
+          await window.LNbitsBridge.copyToClipboard(this.csvDialog.content);
+          this.csvDialog.copied = true;
+          this.$q.notify({ message: 'CSV copied to clipboard!', type: 'positive' });
+          var self = this;
+          setTimeout(function () { self.csvDialog.copied = false; }, 2000);
         } catch (error) {
           this.notifyError(error);
         }
@@ -1112,11 +1136,10 @@
         var headers = 'recipient_name,amount_sats,nostr_npub,sender_name,message';
         var exampleRow = 'Alice,1000,,Bob,Happy birthday!';
         var csv = headers + '\n' + exampleRow + '\n';
-        try {
-          await window.LNbitsBridge.download('giftcards_bulk_template.csv', csv, 'text/csv');
-        } catch (error) {
-          this.notifyError(error);
-        }
+        this.csvDialog.filename = 'giftcards_bulk_template.csv';
+        this.csvDialog.content = csv;
+        this.csvDialog.copied = false;
+        this.csvDialog.show = true;
       },
 
       // ----- Card detail / edit / delete dialogs -----

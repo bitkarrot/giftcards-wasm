@@ -105,7 +105,9 @@
         copied: false,
         tab: 'bech32',
         nfcTagWriting: false,
-        nfcSupported: typeof NDEFReader !== 'undefined'
+        nfcSupported: typeof NDEFReader !== 'undefined',
+        imageDialogShow: false,
+        imageDialogUrl: ''
       };
     },
     computed: {
@@ -227,27 +229,10 @@
           this.$q.notify({ type: 'negative', message: 'No image to download.' });
           return;
         }
-        var self = this;
-        var filename = 'giftcard_' + (this.tokenHash ? this.tokenHash.slice(0, 8) : 'card') + '.png';
-        var base64 = dataUrl.split(',')[1];
-        window.LNbitsBridge.connect().then(function () {
-          return window.LNbitsBridge.download(filename, base64, 'image/png', 'base64');
-        }).then(function () {
-          self.$q.notify({ type: 'positive', message: 'Card image downloaded.' });
-        }).catch(function () {
-          // Fallback: try opening in new tab via bridge
-          window.LNbitsBridge.openInNewTab(dataUrl).then(function () {
-            self.$q.notify({
-              type: 'positive',
-              message: 'Image opened in new tab — right-click to save.'
-            });
-          }).catch(function () {
-            self.$q.notify({
-              type: 'negative',
-              message: 'Could not download. Right-click the QR code to save it.'
-            });
-          });
-        });
+        // The extension sandbox blocks file downloads. Show the image
+        // in a dialog so the user can right-click > "Save image as…"
+        this.imageDialogUrl = dataUrl;
+        this.imageDialogShow = true;
       },
 
       getCardDataUrl: function () {

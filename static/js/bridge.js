@@ -130,18 +130,16 @@ window.LNbitsBridge = (function() {
     return sendRequest('navigation.open_new_tab', { url: url });
   }
 
-  // Download a file by opening a data: URL in a new tab via the bridge.
-  // The iframe CSP blocks blob: URLs and the sandbox blocks <a download>,
-  // so we use openInNewTab with a data URI. The user can save from the
-  // opened tab (Ctrl+S or right-click > Save).
-  function download(filename, data, mimeType, encoding) {
-    var dataUri;
-    if (encoding === 'base64') {
-      dataUri = 'data:' + (mimeType || 'application/octet-stream') + ';base64,' + data;
-    } else {
-      dataUri = 'data:' + (mimeType || 'application/octet-stream') + ';charset=utf-8,' + encodeURIComponent(data);
-    }
-    return sendRequest('navigation.open_new_tab', { url: dataUri });
+  // Copy text to the clipboard. The iframe has `clipboard-write` permission
+  // via the `allow` attribute, so this works inside the sandbox.
+  //
+  // Note: The iframe sandbox (allow-scripts only, no allow-same-origin,
+  // no allow-downloads) and the parent's navigation.open_new_tab (HTTP/HTTPS
+  // only, no data: URIs) make real file downloads impossible without
+  // modifying LNbits core. As a workaround, we copy the content to the
+  // clipboard and show it in a dialog so the user can paste it into a file.
+  function copyToClipboard(text) {
+    return navigator.clipboard.writeText(text);
   }
 
   return {
@@ -152,7 +150,7 @@ window.LNbitsBridge = (function() {
     notify: notify,
     replaceRoute: replaceRoute,
     openInNewTab: openInNewTab,
-    download: download,
+    copyToClipboard: copyToClipboard,
     getContext: function() { return bridgeContext; }
   };
 })();

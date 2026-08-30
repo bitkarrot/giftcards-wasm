@@ -2350,6 +2350,95 @@ return function render(_ctx, _cache) {
           })
         ]),
         _: 1 /* STABLE */
+      }, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue"]),
+      _createCommentVNode(" CSV Export Dialog "),
+      _createVNode(_component_q_dialog, {
+        modelValue: _ctx.csvDialog.show,
+        "onUpdate:modelValue": $event => ((_ctx.csvDialog.show) = $event)
+      }, {
+        default: _withCtx(() => [
+          _createVNode(_component_q_card, {
+            class: "q-pa-lg",
+            style: {"min-width":"400px","max-width":"700px"}
+          }, {
+            default: _withCtx(() => [
+              _createElementVNode("div", { class: "q-gutter-md" }, [
+                _createElementVNode("h6", { class: "text-subtitle1 q-my-none" }, "CSV Export"),
+                _createElementVNode("p", { class: "text-body2" }, [
+                  _createTextVNode(" File downloads are blocked by the extension sandbox. Copy the CSV below and paste it into a text file named "),
+                  _createElementVNode("code", null, _toDisplayString(_ctx.csvDialog.filename), 1 /* TEXT */)
+                ]),
+                _createVNode(_component_q_input, {
+                  filled: "",
+                  dense: "",
+                  readonly: "",
+                  type: "textarea",
+                  "model-value": _ctx.csvDialog.content,
+                  rows: "10",
+                  class: "csv-output"
+                }, null, 8 /* PROPS */, ["model-value"]),
+                _createElementVNode("div", { class: "row justify-end q-gutter-sm" }, [
+                  _withDirectives(_createVNode(_component_q_btn, {
+                    flat: "",
+                    label: "Close",
+                    color: "grey"
+                  }, null, 512 /* NEED_PATCH */), [
+                    [_directive_close_popup]
+                  ]),
+                  _createVNode(_component_q_btn, {
+                    unelevated: "",
+                    color: "primary",
+                    icon: _ctx.csvDialog.copied ? 'check' : 'content_copy',
+                    label: _ctx.csvDialog.copied ? 'Copied!' : 'Copy to Clipboard',
+                    onClick: _ctx.copyCsvToClipboard
+                  }, null, 8 /* PROPS */, ["icon", "label", "onClick"])
+                ])
+              ])
+            ]),
+            _: 1 /* STABLE */
+          })
+        ]),
+        _: 1 /* STABLE */
+      }, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue"]),
+      _createCommentVNode(" Printable Image Dialog "),
+      _createVNode(_component_q_dialog, {
+        modelValue: _ctx.imageDialog.show,
+        "onUpdate:modelValue": $event => ((_ctx.imageDialog.show) = $event)
+      }, {
+        default: _withCtx(() => [
+          _createVNode(_component_q_card, {
+            class: "q-pa-lg",
+            style: {"max-width":"600px"}
+          }, {
+            default: _withCtx(() => [
+              _createElementVNode("div", { class: "q-gutter-md" }, [
+                _createElementVNode("h6", { class: "text-subtitle1 q-my-none" }, "Gift Card Image"),
+                _createElementVNode("p", { class: "text-body2" }, [
+                  _createTextVNode(" Right-click the image and select \"Save image as…\" to save it as "),
+                  _createElementVNode("code", null, _toDisplayString(_ctx.imageDialog.filename), 1 /* TEXT */)
+                ]),
+                _createElementVNode("div", { class: "text-center" }, [
+                  _createElementVNode("img", {
+                    src: _ctx.imageDialog.url,
+                    style: {"max-width":"100%","border-radius":"8px"},
+                    alt: _ctx.imageDialog.filename
+                  }, null, 8 /* PROPS */, ["src", "alt"])
+                ]),
+                _createElementVNode("div", { class: "row justify-end" }, [
+                  _withDirectives(_createVNode(_component_q_btn, {
+                    flat: "",
+                    label: "Close",
+                    color: "grey"
+                  }, null, 512 /* NEED_PATCH */), [
+                    [_directive_close_popup]
+                  ])
+                ])
+              ])
+            ]),
+            _: 1 /* STABLE */
+          })
+        ]),
+        _: 1 /* STABLE */
       }, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue"])
     ])
   ]))

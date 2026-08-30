@@ -204,6 +204,38 @@ test.describe('giftcards-wasm extension', () => {
     await page.screenshot({path: 'test-results/csv-buttons.png', fullPage: true})
   })
 
+  test('CSV export shows dialog with CSV content', async ({page}) => {
+    await navigateToExtension(page)
+
+    const frame = extFrame(page)
+    await expect(frame.locator('table, .q-table').first()).toBeVisible({timeout: 30_000})
+
+    // Click "Download CSV (Filtered)" — exports all loaded cards
+    const csvBtn = frame.locator('button:has-text("Download CSV (Filtered)")').first()
+    await expect(csvBtn).toBeVisible({timeout: 10_000})
+    await csvBtn.click()
+
+    // A CSV export dialog should appear (not a file download — the sandbox
+    // blocks downloads, so we show the CSV in a dialog with copy button)
+    const dialog = frame.locator('.q-dialog').first()
+    await expect(dialog).toBeVisible({timeout: 10_000})
+
+    // The dialog should contain the CSV content in a textarea
+    const textarea = frame.locator('.q-dialog textarea').first()
+    await expect(textarea).toBeVisible({timeout: 10_000})
+    const csvContent = await textarea.inputValue()
+    expect(csvContent).toContain('card_id')
+    // Should have at least one data row
+    const lines = csvContent.trim().split('\n')
+    expect(lines.length).toBeGreaterThan(1)
+
+    // The "Copy to Clipboard" button should be present
+    const copyBtn = frame.locator('.q-dialog button:has-text("Copy to Clipboard")').first()
+    await expect(copyBtn).toBeVisible({timeout: 5_000})
+
+    await page.screenshot({path: 'test-results/csv-export-dialog.png', fullPage: true})
+  })
+
   test('redeem page loads with branded card canvas', async ({page}) => {
     // First get a redemption URL via the API
     const loginResp = await page.request.post(`${BASE_URL}/api/v1/auth`, {
