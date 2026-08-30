@@ -85,21 +85,11 @@ fn h_storage_get_paginated(
 }
 
 fn h_pay_invoice(wallet_id: &str, payment_request: &str, max_sat: u64) -> Value {
-    h_pay_invoice_with_fee(wallet_id, payment_request, max_sat, None)
-}
-
-fn h_pay_invoice_with_fee(
-    wallet_id: &str,
-    payment_request: &str,
-    max_sat: u64,
-    fee_reserve_msat: Option<u64>,
-) -> Value {
     let resp = host::pay_invoice(&host::PayInvoiceRequest {
         wallet_id: wallet_id.to_string(),
         payment_request: payment_request.to_string(),
         max_sat: Some(max_sat),
         description: String::new(),
-        fee_reserve_msat,
     });
     json!({
         "ok": resp.ok,
@@ -961,7 +951,14 @@ impl Guest for Component {
         // Build email content
         let subject = req.get("subject").and_then(|s| s.as_str()).unwrap_or("You received a gift card!");
         let custom_body = req.get("body").and_then(|b| b.as_str()).unwrap_or("");
-        let base_url = card.get("baseUrl").and_then(|v| v.as_str()).unwrap_or("");
+        // Prefer __baseUrl from the request (injected fresh by the host on
+        // every call) over the stored card baseUrl, which may be stale if the
+        // card was created before the proxy-header fix.
+        let base_url = req.get("__baseUrl")
+            .and_then(|v| v.as_str())
+            .filter(|b| !b.is_empty())
+            .or_else(|| card.get("baseUrl").and_then(|v| v.as_str()))
+            .unwrap_or("");
         let raw_token = card.get("rawToken").and_then(|v| v.as_str()).unwrap_or("");
         let amount = card.get("amount").and_then(|v| v.as_u64()).unwrap_or(0);
         let sender = card.get("senderName").and_then(|v| v.as_str()).unwrap_or("Anonymous");
@@ -1175,30 +1172,7 @@ impl Guest for Component {
         let wallet_id = card.get("walletId").and_then(|v| v.as_str()).unwrap_or("").to_string();
         let amount = card.get("amount").and_then(|v| v.as_u64()).unwrap_or(0);
 
-        // Compute per-card fee reserve (if set)
-        let fee_mode = card.get("feeMode").and_then(|v| v.as_str()).unwrap_or("default");
-        let fee_reserve_msat: Option<u64> = if fee_mode == "percentage" {
-            let fee_percent = card.get("feePercent")
-                .and_then(|v| v.as_str())
-                .and_then(|s| s.parse::<f64>().ok())
-                .unwrap_or(0.0);
-            if fee_percent > 0.0 {
-                Some((amount as f64 * 1000.0 * fee_percent / 100.0) as u64)
-            } else {
-                None
-            }
-        } else if fee_mode == "manual" {
-            let fee_sats = card.get("feeSats").and_then(|v| v.as_u64()).unwrap_or(0);
-            if fee_sats > 0 {
-                Some(fee_sats * 1000)
-            } else {
-                None
-            }
-        } else {
-            None
-        };
-
-        let pay_result = h_pay_invoice_with_fee(&wallet_id, pr, amount, fee_reserve_msat);
+        let pay_result = h_pay_invoice(&wallet_id, pr, amount);
 
         let success = pay_result.get("success").and_then(|s| s.as_bool()).unwrap_or(false);
         let pending = pay_result.get("pending").and_then(|p| p.as_bool()).unwrap_or(false);
@@ -1299,7 +1273,11 @@ impl Guest for Component {
         if let Some(api_url) = req.get("emailApiUrl").and_then(|u| u.as_str()) {
             if !api_url.is_empty() {
                 let card = pending.first().unwrap();
-                let base_url = card.get("baseUrl").and_then(|v| v.as_str()).unwrap_or("");
+                let base_url = req.get("__baseUrl")
+                    .and_then(|v| v.as_str())
+                    .filter(|b| !b.is_empty())
+                    .or_else(|| card.get("baseUrl").and_then(|v| v.as_str()))
+                    .unwrap_or("");
                 let sender = card.get("senderName").and_then(|v| v.as_str()).unwrap_or("Anonymous");
                 let magic_link_url = format!("{}/ext/giftcards_wasm/claim/{}", base_url, magic_token);
 
