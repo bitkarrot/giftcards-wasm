@@ -130,6 +130,20 @@ window.LNbitsBridge = (function() {
     return sendRequest('navigation.open_new_tab', { url: url });
   }
 
+  // Request background payment permission from the user. This is required
+  // for the LNURL-withdraw callback to pay invoices from the card owner's
+  // wallet when a recipient redeems a gift card.
+  // Returns the granted permission or throws if denied.
+  function requestBackgroundPaymentPermission(walletId, maxAmount) {
+    return sendRequest('permissions.request_background_payment', {
+      grant: {
+        walletId: walletId,
+        maxAmount: maxAmount || 1000000,
+        destinationPolicy: 'external_allowed'
+      }
+    });
+  }
+
   // Copy text to the clipboard. The iframe has `clipboard-write` permission
   // via the `allow` attribute, so this works inside the sandbox.
   //
@@ -150,6 +164,7 @@ window.LNbitsBridge = (function() {
     notify: notify,
     replaceRoute: replaceRoute,
     openInNewTab: openInNewTab,
+    requestBackgroundPaymentPermission: requestBackgroundPaymentPermission,
     copyToClipboard: copyToClipboard,
     getContext: function() { return bridgeContext; }
   };

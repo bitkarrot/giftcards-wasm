@@ -364,9 +364,14 @@
       var self = this;
       // Initialize dark mode from localStorage or system preference
       this.initDarkMode();
-      window.LNbitsBridge.connect().then(function () {
+      window.LNbitsBridge.connect().then(function (ctx) {
         self.loadGiftCards();
         self.loadWalletBalance();
+        // Request background payment permission so the LNURL-withdraw
+        // callback can pay invoices from the user's wallet when a
+        // recipient redeems a gift card. Without this, redemption fails
+        // with "missing background payment grant".
+        self.requestBackgroundPaymentPermission(ctx);
       }).catch(function (err) {
         console.error('Bridge connection failed:', err);
         self.$q.notify({ message: 'Failed to connect to LNbits bridge', type: 'negative' });
@@ -476,6 +481,30 @@
         // Sats locking is disabled in the WASM version, so we set balance to
         // Infinity to effectively skip balance checks in the UI.
         this.walletBalance = Infinity;
+      },
+
+      async requestBackgroundPaymentPermission(ctx) {
+        // Request background payment permission so the LNURL-withdraw
+        // callback can pay invoices from the user's wallet when a
+        // recipient redeems a gift card.
+        try {
+          var wallets = (ctx && ctx.wallets) || [];
+          if (wallets.length === 0) {
+            console.warn('No wallets available for background payment permission');
+            return;
+          }
+          // Use the first wallet (the WASM module also auto-resolves to
+          // the first wallet when creating cards).
+          var walletId = wallets[0].id;
+          await window.LNbitsBridge.requestBackgroundPaymentPermission(
+            walletId,
+            1000000000 // 1 billion sats max — effectively unlimited
+          );
+        } catch (err) {
+          // Don't show an error — the user may have denied the permission.
+          // They will be prompted again when they try to create a card.
+          console.warn('Background payment permission not granted:', err.message || err);
+        }
       },
 
       openCreateDialog() {
