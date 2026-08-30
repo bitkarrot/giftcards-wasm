@@ -327,6 +327,37 @@
       allSelected() {
         return this.giftCards.length > 0 &&
                this.selectedCards.length === this.giftCards.length;
+      },
+      // ----- Sats allocation stats -----
+      activeCards() {
+        return this.giftCards.filter(function (c) { return c.status === 'active'; });
+      },
+      redeemedCardsList() {
+        return this.giftCards.filter(function (c) { return c.status === 'redeemed'; });
+      },
+      expiredCardsList() {
+        return this.giftCards.filter(function (c) { return c.status === 'expired'; });
+      },
+      allocatedSats() {
+        return this.activeCards.reduce(function (sum, c) { return sum + (c.amount || 0); }, 0);
+      },
+      redeemedSats() {
+        return this.redeemedCardsList.reduce(function (sum, c) { return sum + (c.amount || 0); }, 0);
+      },
+      expiredSats() {
+        return this.expiredCardsList.reduce(function (sum, c) { return sum + (c.amount || 0); }, 0);
+      },
+      totalSats() {
+        return this.giftCards.reduce(function (sum, c) { return sum + (c.amount || 0); }, 0);
+      },
+      activeCount() {
+        return this.activeCards.length;
+      },
+      redeemedCount() {
+        return this.redeemedCardsList.length;
+      },
+      expiredCount() {
+        return this.expiredCardsList.length;
       }
     },
     mounted() {
@@ -549,6 +580,17 @@
         }
         if (isNaN(date.getTime())) return dateString;
         return date.toLocaleDateString();
+      },
+
+      formatSats(sats) {
+        if (sats === 0) return '0 sats';
+        if (sats >= 1000000) {
+          return (sats / 1000000).toFixed(2) + 'M sats';
+        }
+        if (sats >= 1000) {
+          return (sats / 1000).toFixed(1) + 'k sats';
+        }
+        return sats + ' sats';
       },
 
       formatFeeLabel(card) {

@@ -6,6 +6,8 @@ const { createElementVNode: _createElementVNode, resolveComponent: _resolveCompo
 return function render(_ctx, _cache) {
   const _component_q_btn = _resolveComponent("q-btn")
   const _component_q_tooltip = _resolveComponent("q-tooltip")
+  const _component_q_card_section = _resolveComponent("q-card-section")
+  const _component_q_card = _resolveComponent("q-card")
   const _component_q_select = _resolveComponent("q-select")
   const _component_q_input = _resolveComponent("q-input")
   const _component_q_checkbox = _resolveComponent("q-checkbox")
@@ -15,8 +17,6 @@ return function render(_ctx, _cache) {
   const _component_q_badge = _resolveComponent("q-badge")
   const _component_q_separator = _resolveComponent("q-separator")
   const _component_q_table = _resolveComponent("q-table")
-  const _component_q_card_section = _resolveComponent("q-card-section")
-  const _component_q_card = _resolveComponent("q-card")
   const _component_q_expansion_item = _resolveComponent("q-expansion-item")
   const _component_q_list = _resolveComponent("q-list")
   const _component_q_banner = _resolveComponent("q-banner")
@@ -76,6 +76,85 @@ return function render(_ctx, _cache) {
                       ]),
                       _: 1 /* STABLE */
                     }, 8 /* PROPS */, ["icon", "onClick"])
+                  ])
+                ]),
+                _createCommentVNode(" Allocated Sats Summary "),
+                _createElementVNode("div", { class: "row q-col-gutter-sm q-mb-md" }, [
+                  _createElementVNode("div", { class: "col-12 col-sm-6 col-md-3" }, [
+                    _createVNode(_component_q_card, {
+                      flat: "",
+                      bordered: "",
+                      class: "stats-card"
+                    }, {
+                      default: _withCtx(() => [
+                        _createVNode(_component_q_card_section, { class: "q-pa-md" }, {
+                          default: _withCtx(() => [
+                            _createElementVNode("div", { class: "text-caption text-grey" }, "Allocated (Active)"),
+                            _createElementVNode("div", { class: "text-h6 text-weight-bold" }, _toDisplayString(_ctx.formatSats(_ctx.allocatedSats)), 1 /* TEXT */),
+                            _createElementVNode("div", { class: "text-caption text-grey" }, _toDisplayString(_ctx.activeCount) + " card(s)", 1 /* TEXT */)
+                          ]),
+                          _: 1 /* STABLE */
+                        })
+                      ]),
+                      _: 1 /* STABLE */
+                    })
+                  ]),
+                  _createElementVNode("div", { class: "col-12 col-sm-6 col-md-3" }, [
+                    _createVNode(_component_q_card, {
+                      flat: "",
+                      bordered: "",
+                      class: "stats-card"
+                    }, {
+                      default: _withCtx(() => [
+                        _createVNode(_component_q_card_section, { class: "q-pa-md" }, {
+                          default: _withCtx(() => [
+                            _createElementVNode("div", { class: "text-caption text-grey" }, "Redeemed"),
+                            _createElementVNode("div", { class: "text-h6 text-weight-bold text-positive" }, _toDisplayString(_ctx.formatSats(_ctx.redeemedSats)), 1 /* TEXT */),
+                            _createElementVNode("div", { class: "text-caption text-grey" }, _toDisplayString(_ctx.redeemedCount) + " card(s)", 1 /* TEXT */)
+                          ]),
+                          _: 1 /* STABLE */
+                        })
+                      ]),
+                      _: 1 /* STABLE */
+                    })
+                  ]),
+                  _createElementVNode("div", { class: "col-12 col-sm-6 col-md-3" }, [
+                    _createVNode(_component_q_card, {
+                      flat: "",
+                      bordered: "",
+                      class: "stats-card"
+                    }, {
+                      default: _withCtx(() => [
+                        _createVNode(_component_q_card_section, { class: "q-pa-md" }, {
+                          default: _withCtx(() => [
+                            _createElementVNode("div", { class: "text-caption text-grey" }, "Expired"),
+                            _createElementVNode("div", { class: "text-h6 text-weight-bold text-negative" }, _toDisplayString(_ctx.formatSats(_ctx.expiredSats)), 1 /* TEXT */),
+                            _createElementVNode("div", { class: "text-caption text-grey" }, _toDisplayString(_ctx.expiredCount) + " card(s)", 1 /* TEXT */)
+                          ]),
+                          _: 1 /* STABLE */
+                        })
+                      ]),
+                      _: 1 /* STABLE */
+                    })
+                  ]),
+                  _createElementVNode("div", { class: "col-12 col-sm-6 col-md-3" }, [
+                    _createVNode(_component_q_card, {
+                      flat: "",
+                      bordered: "",
+                      class: "stats-card"
+                    }, {
+                      default: _withCtx(() => [
+                        _createVNode(_component_q_card_section, { class: "q-pa-md" }, {
+                          default: _withCtx(() => [
+                            _createElementVNode("div", { class: "text-caption text-grey" }, "Total Created"),
+                            _createElementVNode("div", { class: "text-h6 text-weight-bold" }, _toDisplayString(_ctx.formatSats(_ctx.totalSats)), 1 /* TEXT */),
+                            _createElementVNode("div", { class: "text-caption text-grey" }, _toDisplayString(_ctx.giftCards.length) + " card(s)", 1 /* TEXT */)
+                          ]),
+                          _: 1 /* STABLE */
+                        })
+                      ]),
+                      _: 1 /* STABLE */
+                    })
                   ])
                 ]),
                 _createCommentVNode(" Filter Bar "),

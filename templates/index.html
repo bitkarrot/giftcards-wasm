@@ -48,6 +48,46 @@
               </div>
             </div>
 
+            <!-- Allocated Sats Summary -->
+            <div class="row q-col-gutter-sm q-mb-md">
+              <div class="col-12 col-sm-6 col-md-3">
+                <q-card flat bordered class="stats-card">
+                  <q-card-section class="q-pa-md">
+                    <div class="text-caption text-grey">Allocated (Active)</div>
+                    <div class="text-h6 text-weight-bold">{{ formatSats(allocatedSats) }}</div>
+                    <div class="text-caption text-grey">{{ activeCount }} card(s)</div>
+                  </q-card-section>
+                </q-card>
+              </div>
+              <div class="col-12 col-sm-6 col-md-3">
+                <q-card flat bordered class="stats-card">
+                  <q-card-section class="q-pa-md">
+                    <div class="text-caption text-grey">Redeemed</div>
+                    <div class="text-h6 text-weight-bold text-positive">{{ formatSats(redeemedSats) }}</div>
+                    <div class="text-caption text-grey">{{ redeemedCount }} card(s)</div>
+                  </q-card-section>
+                </q-card>
+              </div>
+              <div class="col-12 col-sm-6 col-md-3">
+                <q-card flat bordered class="stats-card">
+                  <q-card-section class="q-pa-md">
+                    <div class="text-caption text-grey">Expired</div>
+                    <div class="text-h6 text-weight-bold text-negative">{{ formatSats(expiredSats) }}</div>
+                    <div class="text-caption text-grey">{{ expiredCount }} card(s)</div>
+                  </q-card-section>
+                </q-card>
+              </div>
+              <div class="col-12 col-sm-6 col-md-3">
+                <q-card flat bordered class="stats-card">
+                  <q-card-section class="q-pa-md">
+                    <div class="text-caption text-grey">Total Created</div>
+                    <div class="text-h6 text-weight-bold">{{ formatSats(totalSats) }}</div>
+                    <div class="text-caption text-grey">{{ giftCards.length }} card(s)</div>
+                  </q-card-section>
+                </q-card>
+              </div>
+            </div>
+
             <!-- Filter Bar -->
             <div class="row items-end q-col-gutter-sm q-mb-md">
               <div class="col-12 col-sm-6 col-md-5">
