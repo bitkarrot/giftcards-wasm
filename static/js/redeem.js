@@ -47,8 +47,12 @@
 
   function bech32HrpExpand(hrp) {
     var ret = [];
-    for (var i = 0; i < hrp.length; i++) {
+    var i;
+    for (i = 0; i < hrp.length; i++) {
       ret.push(hrp.charCodeAt(i) >> 5);
+    }
+    ret.push(0);
+    for (i = 0; i < hrp.length; i++) {
       ret.push(hrp.charCodeAt(i) & 31);
     }
     return ret;
@@ -68,8 +72,9 @@
     var acc = 0, bits = 0;
     var ret = [];
     var maxv = (1 << toBits) - 1;
+    var maxAcc = (1 << (fromBits + toBits - 1)) - 1;
     for (var i = 0; i < bytes.length; i++) {
-      acc = (acc << fromBits) | bytes[i];
+      acc = ((acc << fromBits) | bytes[i]) & maxAcc;
       bits += fromBits;
       while (bits >= toBits) {
         bits -= toBits;
@@ -107,7 +112,9 @@
         nfcTagWriting: false,
         nfcSupported: typeof NDEFReader !== 'undefined',
         imageDialogShow: false,
-        imageDialogUrl: ''
+        imageDialogUrl: '',
+        imageDialogTitle: 'Gift Card Image',
+        imageDialogInstructions: ''
       };
     },
     computed: {
@@ -203,43 +210,44 @@
         }
       },
 
-      printCard: function () {
+      copyCardImage: function (purpose) {
+        var canvas = this.$refs.brandedCanvas || this.$refs.qrCanvas;
         var dataUrl = this.getCardDataUrl();
-        if (!dataUrl) {
-          this.$q.notify({ type: 'negative', message: 'No image to print.' });
+        if (!canvas || !dataUrl) {
+          this.$q.notify({ type: 'negative', message: 'Gift card image is not ready.' });
           return;
         }
-        // The sandbox blocks window.print() (no allow-modals). Show the
-        // image in a dialog with a Print button and instructions.
+
+        var isPrint = purpose === 'print';
+        this.imageDialogTitle = isPrint ? 'Print Gift Card' : 'Save Gift Card';
+        this.imageDialogInstructions = isPrint
+          ? 'Right-click the image, open it in a new tab, then press Ctrl+P or Command+P.'
+          : 'Right-click the image and select “Save image as…” to save it.';
         this.imageDialogUrl = dataUrl;
         this.imageDialogShow = true;
+
+        var self = this;
+        canvas.toBlob(function (blob) {
+          if (!blob || !navigator.clipboard || !navigator.clipboard.write || typeof ClipboardItem === 'undefined') {
+            return;
+          }
+          navigator.clipboard.write([
+            new ClipboardItem({'image/png': blob})
+          ]).then(function () {
+            self.imageDialogInstructions = isPrint
+              ? 'Image copied. Paste it into a document or image editor, then print it. You can also right-click the preview and open it in a new tab.'
+              : 'Image copied. Paste it into an image editor to save it, or right-click the preview and select “Save image as…”.';
+            self.$q.notify({ type: 'positive', message: 'Gift card image copied to clipboard.' });
+          }).catch(function () {});
+        }, 'image/png');
       },
 
-      printImage: function () {
-        // Try window.print() — may be blocked by sandbox
-        try {
-          window.print();
-        } catch (e) {
-          // Shouldn't happen (sandbox makes print a no-op, not throw)
-        }
-        // Show instructions since print likely didn't work
-        this.$q.notify({
-          type: 'info',
-          message: 'If print didn\'t open, right-click the image → "Open image in new tab" → Ctrl+P',
-          timeout: 5000
-        });
+      printCard: function () {
+        this.copyCardImage('print');
       },
 
       downloadCard: function () {
-        var dataUrl = this.getCardDataUrl();
-        if (!dataUrl) {
-          this.$q.notify({ type: 'negative', message: 'No image to download.' });
-          return;
-        }
-        // The extension sandbox blocks file downloads. Show the image
-        // in a dialog so the user can right-click > "Save image as…"
-        this.imageDialogUrl = dataUrl;
-        this.imageDialogShow = true;
+        this.copyCardImage('save');
       },
 
       getCardDataUrl: function () {

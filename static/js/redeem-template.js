@@ -180,7 +180,7 @@ return function render(_ctx, _cache) {
                               default: _withCtx(() => [
                                 _createVNode(_component_q_tooltip, null, {
                                   default: _withCtx(() => [
-                                    _createTextVNode("Print")
+                                    _createTextVNode("Copy image to print")
                                   ]),
                                   _: 1 /* STABLE */
                                 })
@@ -197,7 +197,7 @@ return function render(_ctx, _cache) {
                               default: _withCtx(() => [
                                 _createVNode(_component_q_tooltip, null, {
                                   default: _withCtx(() => [
-                                    _createTextVNode("Download")
+                                    _createTextVNode("Copy image to save")
                                   ]),
                                   _: 1 /* STABLE */
                                 })
@@ -349,8 +349,8 @@ return function render(_ctx, _cache) {
           }, {
             default: _withCtx(() => [
               _createElementVNode("div", { class: "q-gutter-md" }, [
-                _createElementVNode("h6", { class: "text-subtitle1 q-my-none" }, "Gift Card Image"),
-                _createElementVNode("p", { class: "text-body2" }, " Right-click the image and select \"Save image as…\" to save it, or \"Open image in new tab\" then Ctrl+P to print. "),
+                _createElementVNode("h6", { class: "text-subtitle1 q-my-none" }, _toDisplayString(_ctx.imageDialogTitle), 1 /* TEXT */),
+                _createElementVNode("p", { class: "text-body2" }, _toDisplayString(_ctx.imageDialogInstructions), 1 /* TEXT */),
                 _createElementVNode("div", { class: "text-center" }, [
                   _createElementVNode("img", {
                     src: _ctx.imageDialogUrl,
@@ -360,19 +360,12 @@ return function render(_ctx, _cache) {
                 ]),
                 _createElementVNode("div", { class: "row justify-end q-gutter-sm" }, [
                   _withDirectives(_createVNode(_component_q_btn, {
-                    flat: "",
-                    label: "Close",
-                    color: "grey"
+                    unelevated: "",
+                    label: "Done",
+                    color: "primary"
                   }, null, 512 /* NEED_PATCH */), [
                     [_directive_close_popup]
-                  ]),
-                  _createVNode(_component_q_btn, {
-                    unelevated: "",
-                    color: "primary",
-                    icon: "print",
-                    label: "Print",
-                    onClick: _ctx.printImage
-                  }, null, 8 /* PROPS */, ["onClick"])
+                  ])
                 ])
               ])
             ]),

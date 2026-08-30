@@ -66,6 +66,52 @@ function extFrame(page: Page) {
   return page.frameLocator('iframe').first()
 }
 
+function hasValidBech32Checksum(value: string) {
+  const normalized = value.toLowerCase()
+  const separator = normalized.lastIndexOf('1')
+  if (separator < 1) return false
+
+  const charset = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l'
+  const hrp = normalized.slice(0, separator)
+  const data = Array.from(normalized.slice(separator + 1), char => charset.indexOf(char))
+  if (data.length < 6 || data.some(value => value < 0)) return false
+
+  const values = [
+    ...Array.from(hrp, char => char.charCodeAt(0) >> 5),
+    0,
+    ...Array.from(hrp, char => char.charCodeAt(0) & 31),
+    ...data,
+  ]
+  const generators = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3]
+  let checksum = 1
+  for (const value of values) {
+    const top = checksum >>> 25
+    checksum = (((checksum & 0x1ffffff) << 5) ^ value) >>> 0
+    for (let i = 0; i < generators.length; i++) {
+      if ((top >>> i) & 1) checksum = (checksum ^ generators[i]) >>> 0
+    }
+  }
+  return checksum === 1
+}
+
+async function createRedeemUrl(page: Page) {
+  const loginResp = await page.request.post(`${BASE_URL}/api/v1/auth`, {
+    data: {username: ADMIN_USER, password: ADMIN_PASS},
+  })
+  const {access_token} = await loginResp.json()
+  const cardResp = await page.request.post(`${BASE_URL}/api/v1/ext/giftcards_wasm/cards`, {
+    headers: {Authorization: `Bearer ${access_token}`},
+    data: {amount: 500, recipientName: 'Clipboard test', senderName: 'Playwright'},
+  })
+  const payload = await cardResp.json()
+  const card = payload.data || payload
+  const redeemUrl = card.redemptionUrl.replace(
+    /^https:\/\/schedulerlnbits\.exe\.xyz/,
+    BASE_URL
+  )
+  return redeemUrl.startsWith('/') ? `${BASE_URL}${redeemUrl}` : redeemUrl
+}
+
 test.describe('giftcards-wasm extension', () => {
   test.beforeEach(async ({page}) => {
     // Dismiss LNbits disclaimer and what's-new prompts
@@ -263,6 +309,11 @@ test.describe('giftcards-wasm extension', () => {
     if (redeemUrl.startsWith('/')) {
       redeemUrl = `${BASE_URL}${redeemUrl}`
     }
+    // Rewrite public URL to localhost for testing inside the VM
+    redeemUrl = redeemUrl.replace(
+      /^https:\/\/schedulerlnbits\.exe\.xyz/,
+      BASE_URL
+    )
 
     // Navigate to the redeem page
     await page.goto(redeemUrl)
@@ -276,7 +327,49 @@ test.describe('giftcards-wasm extension', () => {
     const canvas = redeemFrame.locator('canvas').first()
     await expect(canvas).toBeVisible({timeout: 30_000})
 
+    const encodedLnurl = await redeemFrame.locator('.lnurl-input input').inputValue()
+    expect(encodedLnurl).toMatch(/^LNURL1/i)
+    expect(hasValidBech32Checksum(encodedLnurl)).toBe(true)
+
     await page.screenshot({path: 'test-results/redeem-page.png', fullPage: true})
+  })
+
+  test('save and print controls copy the card PNG', async ({page}) => {
+    await page.goto(await createRedeemUrl(page))
+    const frame = extFrame(page)
+    await expect(frame.locator('canvas').first()).toBeVisible({timeout: 30_000})
+    const framePage = page.frames().find(candidate => candidate.url().includes('/ext-frame/'))
+    expect(framePage).toBeTruthy()
+    await framePage!.evaluate(() => {
+      Object.defineProperty(window, 'ClipboardItem', {
+        configurable: true,
+        value: class {
+          data: Record<string, Blob>
+          constructor(data: Record<string, Blob>) {
+            this.data = data
+          }
+        },
+      })
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          write: async (items: Array<{data: Record<string, Blob>}>) => {
+            const blob = items[0].data['image/png']
+            if (!(blob instanceof Blob) || blob.type !== 'image/png') throw new Error('Invalid PNG')
+            ;(window as any).__imageWrites = ((window as any).__imageWrites || 0) + 1
+          },
+        },
+      })
+    })
+
+    await frame.locator('.qrcode__buttons button:has-text("download")').click()
+    await expect(frame.locator('.q-dialog')).toContainText('Image copied.')
+    expect(await framePage!.evaluate(() => (window as any).__imageWrites)).toBe(1)
+    await frame.locator('.q-dialog button:has-text("Done")').click()
+
+    await frame.locator('.qrcode__buttons button:has-text("print")').click()
+    await expect(frame.locator('.q-dialog')).toContainText('then print it')
+    expect(await framePage!.evaluate(() => (window as any).__imageWrites)).toBe(2)
   })
 
   test('no console errors on admin page', async ({page}) => {
