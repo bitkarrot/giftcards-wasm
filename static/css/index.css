@@ -1,5 +1,10 @@
 /* Gift Cards WASM Extension — Quasar-based UI styles */
 
+/* Hide #q-app until Vue mounts to prevent flash of unformatted content (FOUC) */
+.vue-pending {
+  visibility: hidden;
+}
+
 /* Prevent Quasar's bundle.min.css from inflating heading sizes.
    The template uses h5/h6 with text-subtitle1 classes for proper sizing. */
 h1, h2, h3, h4, h5, h6 {

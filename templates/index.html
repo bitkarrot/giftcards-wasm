@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="/ext-assets/giftcards_wasm/css/index.css">
 </head>
 <body>
-<div id="q-app">
+<div id="q-app" class="vue-pending">
   <div id="page-giftcards">
     <div class="row q-col-gutter-md">
       <div class="col-12 col-md-8 col-lg-7">
@@ -363,7 +363,8 @@
                   flat
                   label="Swagger API"
                   type="a"
-                  href="../docs#/GiftCards"
+                  href="/docs"
+                  target="_top"
                 ></q-btn>
               </q-expansion-item>
             </q-list>
@@ -620,7 +621,7 @@
               <q-input
                 readonly
                 dense
-                :model-value="createDialog.result.redemption_url"
+                :model-value="createDialog.result.redemptionUrl"
                 outlined
                 class="q-mb-md"
                 :input-style="{ color: $q.dark.isActive ? '#e0e0e0' : '#333' }"
@@ -630,7 +631,7 @@
                     flat
                     dense
                     icon="content_copy"
-                    @click="copyToClipboard(createDialog.result.redemption_url)"
+                    @click="copyToClipboard(createDialog.result.redemptionUrl)"
                     aria-label="Copy link to clipboard"
                   ></q-btn>
                 </template>

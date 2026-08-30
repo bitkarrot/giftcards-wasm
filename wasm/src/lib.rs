@@ -535,6 +535,13 @@ impl Guest for Component {
             .map(|card| {
                 let mut c = card.clone();
                 check_lazy_expiry(&mut c);
+                let base_url = c.get("baseUrl").and_then(|v| v.as_str()).unwrap_or("");
+                let raw_token = c.get("rawToken").and_then(|v| v.as_str()).unwrap_or("");
+                let redemption_url = if !raw_token.is_empty() {
+                    format!("{}/ext/giftcards_wasm/redeem/{}", base_url, raw_token)
+                } else {
+                    String::new()
+                };
                 json!({
                     "id": c.get("cardId").and_then(|v| v.as_str()).unwrap_or(""),
                     "amount": c.get("amount").and_then(|v| v.as_u64()).unwrap_or(0),
@@ -550,6 +557,7 @@ impl Guest for Component {
                     "expiredAt": c.get("expiredAt").and_then(|v| v.as_str()).unwrap_or(""),
                     "templateName": c.get("templateName").and_then(|v| v.as_str()).unwrap_or(""),
                     "templateAssetId": c.get("templateAssetId").and_then(|v| v.as_str()).unwrap_or(""),
+                    "redemptionUrl": redemption_url,
                 })
             })
             .collect();
@@ -579,7 +587,9 @@ impl Guest for Component {
 
         check_lazy_expiry(&mut card);
 
-        let include_link = req.get("includeLink").and_then(|v| v.as_bool()).unwrap_or(false);
+        let include_link = req.get("includeLink").and_then(|v| {
+            v.as_bool().or_else(|| v.as_str().map(|s| s == "true"))
+        }).unwrap_or(false);
         let redemption_url = if include_link {
             let base_url = card.get("baseUrl").and_then(|v| v.as_str()).unwrap_or("");
             let raw_token = card.get("rawToken").and_then(|v| v.as_str()).unwrap_or("");
@@ -597,21 +607,21 @@ impl Guest for Component {
                 let qr = qr.unwrap_or(json!({}));
                 let txt = txt.unwrap_or(json!({}));
                 Some(json!({
-                    "template_name": card.get("templateName").and_then(|v| v.as_str()).unwrap_or("portrait"),
-                    "template_asset_id": card.get("templateAssetId").and_then(|v| v.as_str()).unwrap_or(""),
-                    "qr_x_frac": qr.get("qr_x_frac").and_then(|v| v.as_f64()).unwrap_or(0.1),
-                    "qr_y_frac": qr.get("qr_y_frac").and_then(|v| v.as_f64()).unwrap_or(0.7),
-                    "qr_size": qr.get("qr_size").and_then(|v| v.as_u64()).unwrap_or(200),
-                    "text_x_frac": txt.get("text_x_frac").and_then(|v| v.as_f64()).unwrap_or(0.1),
-                    "text_y_frac": txt.get("text_y_frac").and_then(|v| v.as_f64()).unwrap_or(0.1),
-                    "font_family": txt.get("font_family").and_then(|v| v.as_str()).unwrap_or("DejaVuSans"),
-                    "font_size": txt.get("font_size").and_then(|v| v.as_u64()).unwrap_or(24),
-                    "font_color": txt.get("font_color").and_then(|v| v.as_str()).unwrap_or("#000000"),
-                    "bg_color": txt.get("bg_color").and_then(|v| v.as_str()).unwrap_or(""),
-                    "text_align": txt.get("text_align").and_then(|v| v.as_str()).unwrap_or("left"),
-                    "show_amount": txt.get("show_amount").and_then(|v| v.as_bool()).unwrap_or(true),
-                    "show_recipient": txt.get("show_recipient").and_then(|v| v.as_bool()).unwrap_or(true),
-                    "show_message": txt.get("show_message").and_then(|v| v.as_bool()).unwrap_or(true),
+                    "templateName": card.get("templateName").and_then(|v| v.as_str()).unwrap_or("portrait"),
+                    "templateAssetId": card.get("templateAssetId").and_then(|v| v.as_str()).unwrap_or(""),
+                    "qrXFrac": qr.get("qr_x_frac").and_then(|v| v.as_f64()).unwrap_or(0.1),
+                    "qrYFrac": qr.get("qr_y_frac").and_then(|v| v.as_f64()).unwrap_or(0.7),
+                    "qrSize": qr.get("qr_size").and_then(|v| v.as_u64()).unwrap_or(200),
+                    "textXFrac": txt.get("text_x_frac").and_then(|v| v.as_f64()).unwrap_or(0.1),
+                    "textYFrac": txt.get("text_y_frac").and_then(|v| v.as_f64()).unwrap_or(0.1),
+                    "fontFamily": txt.get("font_family").and_then(|v| v.as_str()).unwrap_or("DejaVuSans"),
+                    "fontSize": txt.get("font_size").and_then(|v| v.as_u64()).unwrap_or(24),
+                    "fontColor": txt.get("font_color").and_then(|v| v.as_str()).unwrap_or("#000000"),
+                    "bgColor": txt.get("bg_color").and_then(|v| v.as_str()).unwrap_or(""),
+                    "textAlign": txt.get("text_align").and_then(|v| v.as_str()).unwrap_or("left"),
+                    "showAmount": txt.get("show_amount").and_then(|v| v.as_bool()).unwrap_or(true),
+                    "showRecipient": txt.get("show_recipient").and_then(|v| v.as_bool()).unwrap_or(true),
+                    "showMessage": txt.get("show_message").and_then(|v| v.as_bool()).unwrap_or(true),
                 }))
             } else {
                 card.get("designJson").and_then(|v| v.as_str()).and_then(|s| serde_json::from_str(s).ok())

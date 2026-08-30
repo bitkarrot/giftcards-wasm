@@ -518,7 +518,8 @@ return function render(_ctx, _cache) {
                           flat: "",
                           label: "Swagger API",
                           type: "a",
-                          href: "../docs#/GiftCards"
+                          href: "/docs",
+                          target: "_top"
                         })
                       ]),
                       _: 1 /* STABLE */
@@ -856,7 +857,7 @@ return function render(_ctx, _cache) {
                           _createVNode(_component_q_input, {
                             readonly: "",
                             dense: "",
-                            "model-value": _ctx.createDialog.result.redemption_url,
+                            "model-value": _ctx.createDialog.result.redemptionUrl,
                             outlined: "",
                             class: "q-mb-md",
                             "input-style": { color: _ctx.$q.dark.isActive ? '#e0e0e0' : '#333' }
@@ -866,7 +867,7 @@ return function render(_ctx, _cache) {
                                 flat: "",
                                 dense: "",
                                 icon: "content_copy",
-                                onClick: $event => (_ctx.copyToClipboard(_ctx.createDialog.result.redemption_url)),
+                                onClick: $event => (_ctx.copyToClipboard(_ctx.createDialog.result.redemptionUrl)),
                                 "aria-label": "Copy link to clipboard"
                               }, null, 8 /* PROPS */, ["onClick"])
                             ]),

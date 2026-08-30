@@ -360,7 +360,12 @@
        * Unwraps the { ok, data } response envelope and returns the data.
        */
       async apiCall(method, path, body) {
-        var result = await window.LNbitsBridge.callApi(method, API_BASE + path, body);
+        // Deep-clone body to strip Vue reactive proxies before postMessage
+        var cleanBody = body;
+        if (body !== undefined && body !== null) {
+          cleanBody = JSON.parse(JSON.stringify(body));
+        }
+        var result = await window.LNbitsBridge.callApi(method, API_BASE + path, cleanBody);
         // The API returns { ok: true, data: ... } — unwrap it
         if (result && typeof result === 'object' && 'ok' in result && 'data' in result) {
           return result.data;
@@ -400,6 +405,12 @@
           var queryString = params.toString();
           var path = '/cards' + (queryString ? '?' + queryString : '');
           var data = await this.apiCall('GET', path, null);
+          // Make redemption URLs absolute for display/copy
+          (data || []).forEach(function (c) {
+            if (c.redemptionUrl && c.redemptionUrl.startsWith('/')) {
+              c.redemptionUrl = window.location.origin + c.redemptionUrl;
+            }
+          });
           this.giftCards = data || [];
         } catch (error) {
           this.notifyError(error);
@@ -469,6 +480,7 @@
             senderName: d.sender_name || '',
             message: d.message || '',
             expiresAt: d.expires_at || null,
+            baseUrl: window.location.origin,
             design: designMode === 'shared' ? this.buildDesignConfig() : null
           };
           var data = await this.apiCall('POST', '/cards', payload);
@@ -499,7 +511,16 @@
 
       formatDate(dateString) {
         if (!dateString) return '';
-        var date = new Date(dateString);
+        // Handle Unix timestamps (numeric strings)
+        var date;
+        if (/^\d{10}$/.test(dateString)) {
+          date = new Date(parseInt(dateString, 10) * 1000);
+        } else if (/^\d{13}$/.test(dateString)) {
+          date = new Date(parseInt(dateString, 10));
+        } else {
+          date = new Date(dateString);
+        }
+        if (isNaN(date.getTime())) return dateString;
         return date.toLocaleDateString();
       },
 
@@ -550,9 +571,9 @@
         try {
           // Fetch full card details to get the redemption URL / token
           var detail = await this.apiCall('GET', '/cards/' + card.id, null);
-          var redemptionUrl = detail.redemptionUrl || '';
-          if (!redemptionUrl && (detail.token || detail.raw_token)) {
-            redemptionUrl = window.location.origin + '/ext/giftcards_wasm/redeem/' + (detail.token || detail.raw_token);
+          var redemptionUrl = detail.redemptionUrl || card.redemptionUrl || '';
+          if (!redemptionUrl && detail.rawToken) {
+            redemptionUrl = window.location.origin + '/ext/giftcards_wasm/redeem/' + detail.rawToken;
           }
 
           // Build a composite image on a canvas
@@ -579,7 +600,7 @@
 
             // Fill background
             if (design.templateName === 'portrait' || design.templateName === 'landscape') {
-              ctx.fillStyle = design.bg_color || '#ebedf5';
+              ctx.fillStyle = design.bgColor || '#ebedf5';
               ctx.fillRect(0, 0, tw, th);
             } else {
               // Load template image
@@ -600,36 +621,36 @@
                   if (err) reject(err); else resolve();
                 });
               });
-              var qrSize = design.qr_size || 150;
-              var qrX = Math.round((design.qr_x_frac || 0.1) * tw);
-              var qrY = Math.round((design.qr_y_frac || 0.7) * th);
+              var qrSize = design.qrSize || 150;
+              var qrX = Math.round((design.qrXFrac || 0.1) * tw);
+              var qrY = Math.round((design.qrYFrac || 0.7) * th);
               ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
             }
 
             // Draw text
-            if (design.show_amount !== false || design.show_recipient !== false || design.show_message !== false) {
+            if (design.showAmount !== false || design.showRecipient !== false || design.showMessage !== false) {
               var fontFamilyMap = {
                 DejaVuSans: 'sans-serif',
                 DejaVuSerif: 'serif',
                 DejaVuSansMono: 'monospace'
               };
-              ctx.font = (design.font_size || 24) + 'px ' + (fontFamilyMap[design.font_family] || 'sans-serif');
-              ctx.fillStyle = design.font_color || '#000000';
-              ctx.textAlign = design.text_align || 'left';
-              var textX = Math.round((design.text_x_frac || 0.1) * tw);
-              var textY = Math.round((design.text_y_frac || 0.1) * th);
-              var lineHeight = (design.font_size || 24) * 1.3;
-              var y = textY + (design.font_size || 24);
+              ctx.font = (design.fontSize || 24) + 'px ' + (fontFamilyMap[design.fontFamily] || 'sans-serif');
+              ctx.fillStyle = design.fontColor || '#000000';
+              ctx.textAlign = design.textAlign || 'left';
+              var textX = Math.round((design.textXFrac || 0.1) * tw);
+              var textY = Math.round((design.textYFrac || 0.1) * th);
+              var lineHeight = (design.fontSize || 24) * 1.3;
+              var y = textY + (design.fontSize || 24);
 
-              if (design.show_amount !== false) {
+              if (design.showAmount !== false) {
                 ctx.fillText((detail.amount || card.amount || 0) + ' sats', textX, y);
                 y += lineHeight;
               }
-              if (design.show_recipient !== false) {
+              if (design.showRecipient !== false) {
                 ctx.fillText('For: ' + (detail.recipientName || card.recipientName || 'Recipient'), textX, y);
                 y += lineHeight;
               }
-              if (design.show_message !== false) {
+              if (design.showMessage !== false) {
                 ctx.fillText(detail.message || card.message || 'Your message', textX, y);
               }
             }
@@ -678,11 +699,17 @@
             }
           }
 
-          var dataUrl = canvas.toDataURL('image/png');
-          var link = document.createElement('a');
-          link.download = 'giftcard_' + (card.id || card.card_id) + '.png';
-          link.href = dataUrl;
-          link.click();
+          // Use blob URL instead of data URL — CSP may block data: URIs
+          canvas.toBlob(function (blob) {
+            var blobUrl = URL.createObjectURL(blob);
+            var link = document.createElement('a');
+            link.download = 'giftcard_' + card.id + '.png';
+            link.href = blobUrl;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(function () { URL.revokeObjectURL(blobUrl); }, 1000);
+          }, 'image/png');
           this.$q.notify({ message: 'Gift card image downloaded', type: 'positive' });
         } catch (error) {
           console.error('Download failed:', error);
@@ -748,8 +775,10 @@
         a.href = url;
         var suffix = scope === 'selected' ? 'selected' : 'filtered';
         a.download = 'giftcards_' + suffix + '_' + new Date().toISOString().split('T')[0] + '.csv';
+        document.body.appendChild(a);
         a.click();
-        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        setTimeout(function () { window.URL.revokeObjectURL(url); }, 1000);
         this.$q.notify({ message: 'CSV exported successfully', type: 'positive' });
       },
 
@@ -1040,6 +1069,7 @@
             var csvPayload = {
               rows: this.bulkDialog.csvRows,
               design_mode: this.bulkDialog.csvData.designMode,
+              baseUrl: window.location.origin,
               design: design
             };
             await this.apiCall('POST', '/cards/bulk', csvPayload);
@@ -1061,6 +1091,7 @@
               senderName: this.bulkDialog.sameData.sender_name || null,
               message: this.bulkDialog.sameData.message || null,
               expiresAt: this.bulkDialog.sameData.expires_at || null,
+              baseUrl: window.location.origin,
               design: design2
             };
             await this.apiCall('POST', '/cards/bulk', samePayload);
@@ -1114,8 +1145,10 @@
         var a = document.createElement('a');
         a.href = url;
         a.download = 'giftcards_bulk_template.csv';
+        document.body.appendChild(a);
         a.click();
-        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        setTimeout(function () { window.URL.revokeObjectURL(url); }, 1000);
       },
 
       // ----- Card detail / edit / delete dialogs -----
@@ -1126,6 +1159,10 @@
         this.detailDialog.show = true;
         try {
           var data = await this.apiCall('GET', '/cards/' + card.id + '?include_link=true', null);
+          // Make redemption URL absolute if it's relative
+          if (data.redemptionUrl && data.redemptionUrl.startsWith('/')) {
+            data.redemptionUrl = window.location.origin + data.redemptionUrl;
+          }
           this.detailDialog.card = data;
           if (data.tokenHash) {
             this.detailDialog.cardImageUrl = API_BASE + '/cards/' + data.tokenHash + '/image?t=' + Date.now();
@@ -1204,19 +1241,19 @@
           this.templateAssetId = design.templateAssetId || null;
           this.templateAssetStaged = false;
         }
-        this.qrX = Math.round((design.qr_x_frac || 0.1) * this.previewWidth);
-        this.qrY = Math.round((design.qr_y_frac || 0.7) * this.previewHeight);
-        this.qrSize = design.qr_size || 150;
-        this.textX = Math.round((design.text_x_frac || 0.1) * this.previewWidth);
-        this.textY = Math.round((design.text_y_frac || 0.1) * this.previewHeight);
-        this.selectedFont = design.font_family || 'DejaVuSans';
-        this.fontSize = design.font_size || 24;
-        this.fontColor = design.font_color || '#000000';
-        this.bgColor = design.bg_color || '#ebedf5';
-        this.textAlign = design.text_align || 'left';
-        this.showAmount = design.show_amount !== false;
-        this.showRecipient = design.show_recipient !== false;
-        this.showMessage = design.show_message !== false;
+        this.qrX = Math.round((design.qrXFrac || 0.1) * this.previewWidth);
+        this.qrY = Math.round((design.qrYFrac || 0.7) * this.previewHeight);
+        this.qrSize = design.qrSize || 150;
+        this.textX = Math.round((design.textXFrac || 0.1) * this.previewWidth);
+        this.textY = Math.round((design.textYFrac || 0.1) * this.previewHeight);
+        this.selectedFont = design.fontFamily || 'DejaVuSans';
+        this.fontSize = design.fontSize || 24;
+        this.fontColor = design.fontColor || '#000000';
+        this.bgColor = design.bgColor || '#ebedf5';
+        this.textAlign = design.textAlign || 'left';
+        this.showAmount = design.showAmount !== false;
+        this.showRecipient = design.showRecipient !== false;
+        this.showMessage = design.showMessage !== false;
       },
 
       buildDesignConfig() {
@@ -1309,14 +1346,10 @@
         if (this.bulkDeleteDialog.cardIds.length === 0) return;
         this.bulkDeleteDialog.loading = true;
         try {
-          var data = await this.apiCall('DELETE', '/cards/bulk', { card_ids: this.bulkDeleteDialog.cardIds });
+          var data = await this.apiCall('DELETE', '/cards/bulk', { cardIds: this.bulkDeleteDialog.cardIds });
           this.bulkDeleteDialog.show = false;
           var deleted = (data && data.deleted) || 0;
-          var reclaimed = (data && data.reclaimed_sats) || 0;
           var msg = deleted + ' card' + (deleted === 1 ? '' : 's') + ' deleted';
-          if (reclaimed > 0) {
-            msg += ' and ' + reclaimed + ' sats reclaimed';
-          }
           this.$q.notify({ message: msg, type: 'positive' });
           this.selectedCards = [];
           await this.loadGiftCards();
@@ -1414,6 +1447,9 @@
       }
     });
     app.mount('#q-app');
+    // Remove the FOUC hiding class now that Vue has mounted
+    var qApp = document.getElementById('q-app');
+    if (qApp) qApp.classList.remove('vue-pending');
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', mountApp);

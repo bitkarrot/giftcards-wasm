@@ -16,8 +16,8 @@ const ROOT = path.join(__dirname);
 function compileTemplate(htmlFile, outputFile, varName) {
   const html = fs.readFileSync(htmlFile, 'utf8');
 
-  // Extract the template from inside <div id="q-app">...</div>
-  const match = html.match(/<div id="q-app">([\s\S]*?)<\/div>\s*<script/i);
+  // Extract the template from inside <div id="q-app" ...>...</div>
+  const match = html.match(/<div id="q-app"[^>]*>([\s\S]*?)<\/div>\s*<script/i);
   if (!match) {
     throw new Error(`Could not find #q-app template in ${htmlFile}`);
   }
