@@ -908,7 +908,27 @@ impl Guest for Component {
         check_lazy_expiry(&mut card);
 
         let status = card.get("status").and_then(|s| s.as_str()).unwrap_or("active");
-        if status != "active" {
+
+        // Auto-recover stuck "redeeming" cards: if a card has been in
+        // "redeeming" status for more than 10 minutes, the payment process
+        // likely crashed (e.g., host exception from invalid bolt11 decode)
+        // and the card was never reset to "active". Reset it now so the
+        // user can retry the redemption.
+        if status == "redeeming" {
+            // A previous callback may have crashed (host exception from
+            // invalid bolt11 or payment failure) before resetting the
+            // status. If the card is still "redeeming" and we're being
+            // asked for LNURL params again, the previous redeem attempt
+            // has failed. Reset to "active" so the user can retry.
+            h_log("info", &format!("Auto-recovering stuck card {} from 'redeeming' to 'active'", &token_hash[..token_hash.len().min(8)]));
+            card["status"] = json!("active");
+            if !h_storage_set("cards", &card) {
+                return ok(json!({
+                    "status": "ERROR",
+                    "reason": "Failed to recover card state. Please try again.",
+                }));
+            }
+        } else if status != "active" {
             return ok(json!({
                 "status": "ERROR",
                 "reason": format!("Gift card is {}", status),
@@ -972,11 +992,32 @@ impl Guest for Component {
             None => return ok(json!({"status": "ERROR", "reason": "Gift card not found"})),
         };
         let fresh_status = fresh.get("status").and_then(|s| s.as_str()).unwrap_or("active");
-        if fresh_status != "active" {
+        // Auto-recover stuck "redeeming" cards: a previous callback may have
+        // crashed (host exception) before resetting the status. If the card
+        // is still "redeeming", treat it as "active" and allow the retry.
+        if fresh_status == "redeeming" {
+            h_log("info", &format!("Auto-recovering stuck card {} from 'redeeming' to 'active' in callback", &k1[..k1.len().min(8)]));
+            let mut recovered = fresh.clone();
+            recovered["status"] = json!("active");
+            if !h_storage_set("cards", &recovered) {
+                return ok(json!({"status": "ERROR", "reason": "Failed to recover card state"}));
+            }
+            // Re-read to confirm
+            let recheck = match h_storage_get("cards", k1) {
+                Some(c) => c,
+                None => return ok(json!({"status": "ERROR", "reason": "Gift card not found"})),
+            };
+            let recheck_status = recheck.get("status").and_then(|s| s.as_str()).unwrap_or("");
+            if recheck_status != "active" {
+                return ok(json!({"status": "ERROR", "reason": "Card is being redeemed by another request"}));
+            }
+            card = recheck;
+        } else if fresh_status != "active" {
             return ok(json!({"status": "ERROR", "reason": format!("Gift card is {}", fresh_status)}));
+        } else {
+            card = fresh;
         }
         // Carry over any expiry side-effects from check_lazy_expiry above.
-        card = fresh;
         card["status"] = json!("redeeming");
         let id = card.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
         if !h_storage_set("cards", &card) {
