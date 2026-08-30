@@ -130,6 +130,15 @@ window.LNbitsBridge = (function() {
     return sendRequest('navigation.open_new_tab', { url: url });
   }
 
+  function download(filename, data, mimeType, encoding) {
+    return sendRequest('navigation.download', {
+      filename: filename,
+      data: data,
+      mimeType: mimeType || 'application/octet-stream',
+      encoding: encoding || 'utf8'
+    });
+  }
+
   return {
     connect: connect,
     callApi: callApi,
@@ -138,6 +147,7 @@ window.LNbitsBridge = (function() {
     notify: notify,
     replaceRoute: replaceRoute,
     openInNewTab: openInNewTab,
+    download: download,
     getContext: function() { return bridgeContext; }
   };
 })();

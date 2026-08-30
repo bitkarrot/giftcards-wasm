@@ -682,17 +682,15 @@
             }
           }
 
-          // Use blob URL instead of data URL — CSP may block data: URIs
-          canvas.toBlob(function (blob) {
-            var blobUrl = URL.createObjectURL(blob);
-            var link = document.createElement('a');
-            link.download = 'giftcard_' + card.id + '.png';
-            link.href = blobUrl;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            setTimeout(function () { URL.revokeObjectURL(blobUrl); }, 1000);
-          }, 'image/png');
+          // Send PNG data through the bridge for download (CSP blocks blob: URLs)
+          var dataUrl = canvas.toDataURL('image/png');
+          var base64 = dataUrl.split(',')[1];
+          await window.LNbitsBridge.download(
+            'giftcard_' + card.id + '.png',
+            base64,
+            'image/png',
+            'base64'
+          );
           this.$q.notify({ message: 'Gift card image downloaded', type: 'positive' });
         } catch (error) {
           console.error('Download failed:', error);
@@ -718,7 +716,7 @@
         });
       },
 
-      exportCSV(scope) {
+      async exportCSV(scope) {
         var cards;
         if (scope === 'selected') {
           cards = this.selectedCards;
@@ -751,17 +749,14 @@
           }).join(',') + '\n';
         });
 
-        var blob = new Blob([csv], { type: 'text/csv' });
-        var url = window.URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
         var suffix = scope === 'selected' ? 'selected' : 'filtered';
-        a.download = 'giftcards_' + suffix + '_' + new Date().toISOString().split('T')[0] + '.csv';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(function () { window.URL.revokeObjectURL(url); }, 1000);
-        this.$q.notify({ message: 'CSV exported successfully', type: 'positive' });
+        var filename = 'giftcards_' + suffix + '_' + new Date().toISOString().split('T')[0] + '.csv';
+        try {
+          await window.LNbitsBridge.download(filename, csv, 'text/csv');
+          this.$q.notify({ message: 'CSV exported successfully', type: 'positive' });
+        } catch (error) {
+          this.notifyError(error);
+        }
       },
 
       // ----- Card Designer: drag interaction -----
@@ -1078,19 +1073,15 @@
         }
       },
 
-      downloadCsvTemplate() {
+      async downloadCsvTemplate() {
         var headers = 'recipient_name,amount_sats,nostr_npub,sender_name,message';
         var exampleRow = 'Alice,1000,,Bob,Happy birthday!';
         var csv = headers + '\n' + exampleRow + '\n';
-        var blob = new Blob([csv], { type: 'text/csv' });
-        var url = window.URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = 'giftcards_bulk_template.csv';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(function () { window.URL.revokeObjectURL(url); }, 1000);
+        try {
+          await window.LNbitsBridge.download('giftcards_bulk_template.csv', csv, 'text/csv');
+        } catch (error) {
+          this.notifyError(error);
+        }
       },
 
       // ----- Card detail / edit / delete dialogs -----
