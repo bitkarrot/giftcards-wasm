@@ -4,6 +4,19 @@
   'use strict';
 
   var API_BASE = '/api/v1/ext/giftcards_wasm';
+  var IMG_BASE = '/ext-assets/giftcards_wasm/img';
+
+  // Sample template dimensions (must match index.js)
+  var SAMPLE_TEMPLATES = [
+    {value: 'GiftBoxes',        label: 'Gift Boxes',         w: 825, h: 638},
+    {value: 'GiftCard',         label: 'Gift Card',          w: 825, h: 638},
+    {value: 'HappyBirthday',    label: 'Happy Birthday',     w: 825, h: 638},
+    {value: 'MerryXmas',        label: 'Merry Xmas',         w: 825, h: 638},
+    {value: 'OrangeCard',       label: 'Orange Card',        w: 825, h: 638},
+    {value: 'PurpleGift',       label: 'Purple Gift',        w: 825, h: 638},
+    {value: 'SatsGiftCard',     label: 'Sats Gift Card',     w: 825, h: 638},
+    {value: 'SeasonsGreetings', label: "Season's Greetings", w: 825, h: 638}
+  ];
 
   async function apiCall(method, path, body) {
     await window.LNbitsBridge.connect();
@@ -268,68 +281,97 @@
           var canvas = self.$refs.brandedCanvas;
           if (!canvas) return;
 
+          var templateName = self.giftCard.templateName || '';
+          var templateAssetId = self.giftCard.templateAssetId || '';
+
+          // Determine canvas dimensions from template
+          var tw = 425, th = 650;
+          if (templateName === 'portrait') { tw = 425; th = 650; }
+          else if (templateName === 'landscape') { tw = 1050; th = 600; }
+          else {
+            var sample = SAMPLE_TEMPLATES.find(function (s) { return s.value === templateName; });
+            if (sample) { tw = sample.w; th = sample.h; }
+          }
+
+          canvas.width = tw;
+          canvas.height = th;
           var ctx = canvas.getContext('2d');
-          var W = 400, H = 540;
-          canvas.width = W;
-          canvas.height = H;
 
-          // White background
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, W, H);
-
-          // Border
-          ctx.strokeStyle = '#1976d2';
-          ctx.lineWidth = 3;
-          ctx.strokeRect(10, 10, W - 20, H - 20);
-
-          // Title
-          ctx.fillStyle = '#1976d2';
-          ctx.font = 'bold 24px Roboto, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('Gift Card', W / 2, 50);
-
-          // Amount
-          ctx.fillStyle = '#333';
-          ctx.font = 'bold 32px Roboto, sans-serif';
-          ctx.fillText((self.giftCard.amount || 0) + ' sats', W / 2, 100);
-
-          // Sender / recipient
-          ctx.font = '14px Roboto, sans-serif';
-          ctx.textAlign = 'left';
-          var y = 140;
-          if (self.giftCard.recipientName) {
-            ctx.fillText('To: ' + self.giftCard.recipientName, 30, y);
-            y += 24;
-          }
-          if (self.giftCard.senderName) {
-            ctx.fillText('From: ' + self.giftCard.senderName, 30, y);
-            y += 24;
-          }
-          if (self.giftCard.message) {
-            ctx.fillText('Message: ' + self.giftCard.message, 30, y);
-            y += 24;
+          // Determine image URL
+          var imgUrl = null;
+          if (templateName === 'custom' && templateAssetId) {
+            imgUrl = API_BASE + '/cards/template/' + templateAssetId;
+          } else if (templateName && templateName !== 'portrait' && templateName !== 'landscape') {
+            imgUrl = IMG_BASE + '/template_' + templateName + '.png';
           }
 
-          // QR code — render to an offscreen canvas, then composite
-          y += 10;
-          var qrSize = 200;
-          var qrX = (W - qrSize) / 2;
-          var qrCanvas = document.createElement('canvas');
-          if (window.QRCode) {
-            window.QRCode.toCanvas(qrCanvas, self.lnurl, { width: qrSize }, function () {
-              ctx.drawImage(qrCanvas, qrX, y, qrSize, qrSize);
-
-              // LNURL string at bottom
-              y += qrSize + 20;
-              ctx.font = '11px Roboto, sans-serif';
-              ctx.fillStyle = '#666';
-              ctx.textAlign = 'center';
-              var url = self.lnurlString || '';
-              if (url.length > 55) url = url.substring(0, 52) + '...';
-              ctx.fillText(url, W / 2, y);
-            });
+          if (imgUrl) {
+            // Load template image, then draw QR + text overlay
+            var img = new Image();
+            img.onload = function () {
+              ctx.drawImage(img, 0, 0, tw, th);
+              self._drawQrAndTextOnCard(ctx, tw, th);
+            };
+            img.onerror = function () {
+              // Fallback: draw a plain background
+              ctx.fillStyle = '#ebedf5';
+              ctx.fillRect(0, 0, tw, th);
+              self._drawQrAndTextOnCard(ctx, tw, th);
+            };
+            img.src = imgUrl;
+          } else {
+            // Portrait/landscape: plain background
+            ctx.fillStyle = '#ebedf5';
+            ctx.fillRect(0, 0, tw, th);
+            self._drawQrAndTextOnCard(ctx, tw, th);
           }
         });
+      },
+
+      _drawQrAndTextOnCard: function (ctx, tw, th) {
+        var self = this;
+        // Draw QR code
+        var qrSize = 200;
+        var qrX = Math.round(0.1 * tw);
+        var qrY = Math.round(0.7 * th);
+        var qrCanvas = document.createElement('canvas');
+        if (window.QRCode) {
+          window.QRCode.toCanvas(qrCanvas, self.lnurl, { width: qrSize }, function () {
+            ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
+
+            // Draw text overlay
+            ctx.font = '24px sans-serif';
+            ctx.fillStyle = '#000000';
+            ctx.textAlign = 'left';
+            var textX = Math.round(0.1 * tw);
+            var textY = Math.round(0.1 * th);
+            var lineHeight = 24 * 1.3;
+            var y = textY + 24;
+
+            ctx.fillText((self.giftCard.amount || 0) + ' sats', textX, y);
+            y += lineHeight;
+            if (self.giftCard.recipientName) {
+              ctx.fillText('For: ' + self.giftCard.recipientName, textX, y);
+              y += lineHeight;
+            }
+            if (self.giftCard.senderName) {
+              ctx.fillText('From: ' + self.giftCard.senderName, textX, y);
+              y += lineHeight;
+            }
+            if (self.giftCard.message) {
+              ctx.fillText(self.giftCard.message, textX, y);
+            }
+
+            // LNURL string at bottom
+            y = th - 20;
+            ctx.font = '11px sans-serif';
+            ctx.fillStyle = '#666';
+            ctx.textAlign = 'center';
+            var url = self.lnurlString || '';
+            if (url.length > 55) url = url.substring(0, 52) + '...';
+            ctx.fillText(url, tw / 2, y);
+          });
+        }
       },
 
       async loadGiftCard() {

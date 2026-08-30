@@ -274,6 +274,14 @@
                       <q-separator class="q-mb-md"></q-separator>
 
                       <div class="row q-col-gutter-md">
+                        <div class="col-6 col-md-3">
+                          <div class="text-caption">Amount:</div>
+                          <div>{{ props.row.amount }} sats</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                          <div class="text-caption">Template:</div>
+                          <div>{{ getTemplateLabel(props.row.templateName) }}</div>
+                        </div>
                         <div class="col-12 col-md-6">
                           <div class="text-caption">From:</div>
                           <div>{{ props.row.senderName || 'Anonymous' }}</div>

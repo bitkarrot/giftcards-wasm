@@ -868,6 +868,10 @@ impl Guest for Component {
 
         let status = card.get("status").and_then(|s| s.as_str()).unwrap_or("active");
         let has_design = card.get("designJson").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false);
+        let template_name = card.get("templateName").and_then(|v| v.as_str()).unwrap_or("");
+        let template_asset_id = card.get("templateAssetId").and_then(|v| v.as_str()).unwrap_or("");
+        // hasDesign is true if there's a non-empty template name or designJson
+        let has_design = has_design || !template_name.is_empty();
 
         ok(json!({
             "status": status,
@@ -878,6 +882,8 @@ impl Guest for Component {
             "expiresAt": card.get("expiresAt").and_then(|v| v.as_str()).unwrap_or(""),
             "expiredAt": card.get("expiredAt").and_then(|v| v.as_str()).unwrap_or(""),
             "hasDesign": has_design,
+            "templateName": template_name,
+            "templateAssetId": template_asset_id,
         }))
     }
 

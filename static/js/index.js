@@ -577,6 +577,15 @@
         }
       },
 
+      getTemplateLabel(templateName) {
+        if (!templateName) return 'Portrait (default)';
+        if (templateName === 'portrait') return 'Portrait';
+        if (templateName === 'landscape') return 'Landscape';
+        if (templateName === 'custom') return 'Custom Upload';
+        var sample = this.sampleTemplates.find(function (s) { return s.value === templateName; });
+        return sample ? sample.label : templateName;
+      },
+
       getDeliveryStatusColor(status) {
         switch (status) {
           case 'not_sent': return 'grey-6';
