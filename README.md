@@ -5,90 +5,97 @@ A WASM Component Model extension for [LNbits](https://lnbits.com) that lets wall
 ## Features
 
 - **Create gift cards** — mint a card with a chosen amount (sats), recipient info, sender name, message, and expiry
-- **Design templates** — pick from 6 built-in card designs (blue, green, purple, orange, dark, bitcoin)
+- **Design templates** — choose from eight themed designs plus portrait and landscape layouts
 - **LNURL-withdraw redemption** — each card has an LNURL-withdraw URL; recipients redeem via any Lightning wallet
 - **QR code rendering** — client-side canvas QR codes for easy scanning (no server-side image generation)
-- **Public redeem page** — shareable link (`/ext/giftcards/redeem/{token}`) showing card details and QR
-- **Magic link claim** — bundle multiple cards into a magic link so a recipient can claim them all at once
-- **Email delivery** — optional email notification via the host's `http.request` permission
+- **Public redeem page** — shareable link (`/ext/giftcards_wasm/redeem/{token}`) showing card details and QR
 - **Bulk create / delete** — manage many cards at once
 - **Lazy expiry** — expired cards are detected on access without a background cron
-- **Invoice event handler** — `on-invoice-paid` marks cards as funded when the funding invoice settles
 
 ## Architecture
 
+```text
+LNbits page
+└── WASM extension wrapper
+    └── Sandboxed Vue iframe
+        ├── Management UI
+        ├── Public redemption UI
+        └── LNbitsBridge (MessageChannel/postMessage)
+                │
+                ▼
+        LNbits WASM route adapter
+                │
+                ▼
+        Rust component exports
+        ├── Extension storage host API
+        └── Wallet payment host API
 ```
+
+The browser UI cannot access LNbits APIs directly because the extension iframe uses a restrictive Content Security Policy. `static/js/bridge.js` sends approved requests to the parent wrapper, which validates the route and performs the same-origin API call. LNbits then invokes the matching Rust component export defined in `wasm/wit/world.wit`.
+
+### Redemption flow
+
+1. The authenticated management page creates a card through `create-card`.
+2. The Rust component generates a random raw token, uses its SHA-256 hash as the card record key, stores the card, and returns a shareable redemption URL.
+3. The public redemption page hashes the URL token in the browser, loads the public card fields, and renders the selected design and LNURL-withdraw QR code.
+4. A Lightning wallet requests `lnurl-params`, creates an invoice for the fixed card amount, and calls `lnurl-callback`.
+5. The callback locks the card in the `redeeming` state, pays the invoice through the wallet host API, and marks the card `redeemed` after success. Failed payments return the card to `active` so redemption can be retried.
+6. Expiration is checked lazily whenever a card is read.
+
+### Project structure
+
+```text
 giftcards-wasm/
-├── config.json              # Extension manifest: routes, permissions, WASM spec
-├── wasm/                    # Rust WASM module (Component Model)
-│   ├── Cargo.toml
-│   ├── src/
-│   │   ├── lib.rs           # Core gift card logic + host bindings
-│   │   └── bindings.rs      # Auto-generated WIT bindings
-│   └── wit/
-│       └── world.wit        # WIT interface (host imports + exports)
+├── config.json                  # Manifest, routes, exports, and permissions
+├── build-templates.js           # Precompiles CSP-safe Vue render functions
+├── wasm/
+│   ├── Cargo.toml               # Rust component package
+│   ├── src/lib.rs               # Card lifecycle and LNURL logic
+│   ├── src/bindings.rs          # Generated WIT bindings
+│   └── wit/world.wit            # Guest exports and host imports
 ├── storage/
-│   ├── schema.json          # Table definitions: cards, magic_links
-│   └── migrations/
-│       └── 001_init.json    # Initial migration
-├── templates/               # HTML pages (CSP-safe, vanilla JS)
-│   ├── index.html           # Admin management UI
-│   ├── redeem.html          # Public redemption page
-│   └── claim.html           # Public magic-link claim page
-└── static/
-    ├── js/
-    │   ├── bridge.js        # LNbitsBridge postMessage helper
-    │   ├── index.js         # Admin UI logic
-    │   ├── redeem.js        # Redeem page logic
-    │   ├── claim.js         # Claim page logic
-    │   ├── qr-helper.js     # QR canvas rendering
-    │   └── qrcode.min.js    # QR code library
-    ├── css/
-    │   ├── index.css
-    │   ├── redeem.css
-    │   └── claim.css
-    ├── templates/           # Card design preview images
-    │   ├── blue.png
-    │   ├── green.png
-    │   ├── purple.png
-    │   ├── orange.png
-    │   ├── dark.png
-    │   └── bitcoin.png
-    └── assets/
-        └── icon.png         # Extension icon
+│   ├── schema.json              # Card storage schema
+│   └── migrations/              # Versioned schema changes
+├── templates/
+│   ├── index.html               # Authenticated management page
+│   └── redeem.html              # Public redemption page
+├── static/
+│   ├── js/bridge.js             # Sandboxed iframe bridge client
+│   ├── js/index.js              # Management UI behavior
+│   ├── js/redeem.js             # Redemption UI and LNURL rendering
+│   ├── js/*-template.js         # Precompiled Vue render functions
+│   ├── css/                     # Page and dark-mode styles
+│   ├── image/                   # Full-size card designs
+│   └── assets/icon.png          # Extension icon
+└── tests/
+    ├── e2e/giftcards-wasm.spec.ts
+    └── giftcards.spec.js
 ```
 
-### WASM Module
+### WASM exports
 
-The Rust module compiles to `wasm32-wasip1` using `cargo-component`. It imports host functions from `lnbits:extension/host` for storage, invoice creation, and HTTP requests. All exports use JSON string serialization for parameters and return values.
+The Rust module targets `wasm32-wasip1` and exchanges JSON strings with the LNbits WASM runtime.
 
-**Exported functions:**
-
-| Function | Type | Description |
+| Function | Access | Purpose |
 |---|---|---|
-| `create-card` | authenticated | Create a new gift card |
-| `get-cards` | authenticated | List cards with optional status filter |
-| `get-card` | authenticated | Get single card by ID |
-| `update-card` | authenticated | Update card details |
-| `delete-card` | authenticated | Delete a card |
-| `bulk-create` | authenticated | Create multiple cards |
-| `bulk-delete` | authenticated | Delete multiple cards |
-| `deliver-email` | authenticated | Send email notification |
-| `get-public-card` | public | Get card info by token hash (no auth) |
-| `lnurl-params` | public | Return LNURL-withdraw parameters |
-| `lnurl-callback` | public | Process LNURL-withdraw callback |
-| `claim-cards` | public | Claim cards via magic link |
-| `verify-claim` | public | Verify a magic link token |
-| `on-invoice-paid` | event | Mark card funded when invoice settles |
+| `create-card` | Authenticated | Create a card and redemption token |
+| `get-cards` | Authenticated | List cards with optional filters |
+| `get-card` | Authenticated | Return card details |
+| `update-card` | Authenticated | Update card metadata and design |
+| `delete-card` | Authenticated | Delete a card |
+| `bulk-create` | Authenticated | Create multiple cards |
+| `get-public-card` | Public | Return safe redemption-page fields |
+| `lnurl-params` | Public | Return LNURL-withdraw parameters |
+| `lnurl-callback` | Public | Pay the recipient invoice and complete redemption |
 
 ### CSP Compliance
 
 WASM extension iframes have a strict Content Security Policy:
-- `script-src` — only same-origin ext-assets, no `unsafe-eval` (no Vue.js)
-- `style-src-attr 'none'` — no inline styles (all CSS in external files)
-- `connect-src 'none'` — no `fetch()`/XHR (all API calls via `postMessage` bridge)
+- `script-src` — only same-origin extension assets, with no inline scripts or `unsafe-eval`
+- `style-src-attr 'none'` — no inline styles (all CSS is loaded from extension assets)
+- `connect-src 'none'` — no direct `fetch()`/XHR (API calls use the `LNbitsBridge`)
 
-All frontend code is vanilla JavaScript using the `LNbitsBridge` for API communication.
+The frontend uses CSP-safe JavaScript, precompiled Vue templates, and the `LNbitsBridge` for API communication.
 
 ## Screenshots
 
@@ -107,14 +114,11 @@ All frontend code is vanilla JavaScript using the `LNbitsBridge` for API communi
 ### Card List View
 ![Card List](screenshots/05-card-list.png)
 
-### Card Detail with QR Code
-![Card Detail QR](screenshots/06-card-detail-qr.png)
+### Card Details and Design
+![Card details with Orange Card design](screenshots/06-card-detail-qr.png)
 
-### Public Redeem Page
-![Redeem Page](screenshots/07-redeem-page.png)
-
-### Magic Link Claim Page
-![Claim Page](screenshots/08-claim-page.png)
+### Public Redeem Page with Orange Card Design
+![Orange Card redemption page](screenshots/07-redeem-page.png)
 
 ## Installation
 
@@ -137,25 +141,20 @@ This produces `wasm/target/wasm32-wasip1/release/giftcards_wasm.wasm`.
 Copy the extension directory into LNbits' WASM extensions folder:
 
 ```bash
-cp -r giftcards-wasm /path/to/lnbits/data/wasm_extensions/giftcards
+cp -r giftcards-wasm /path/to/lnbits/data/wasm_extensions/giftcards_wasm
 ```
 
 Restart LNbits. The extension will appear in the navigation drawer.
 
 ### Configuration
 
-The `config.json` manifest defines:
-- **WASM module path** and WIT world
-- **14 exported functions** (public, authenticated, and event)
-- **13 API routes** mapped to exports
-- **4 UI routes** (admin index, redeem, claim, + LNURL callback)
-- **12 permissions** (storage read/write, invoice create/pay, HTTP request, etc.)
+The `config.json` manifest defines the WASM module and WIT world, authenticated and public card routes, admin and redemption pages, and the storage and wallet permissions required by the extension.
 
 ## Development
 
 ### Playwright Tests
 
-The repository includes Playwright end-to-end tests that verify the full flow: login, create card, view list, view detail with QR, redeem page, and claim page.
+The repository includes Playwright end-to-end tests that verify login, card creation and management, card details, LNURL redemption, and sandbox-safe image actions.
 
 ```bash
 npm install
@@ -172,11 +171,11 @@ Screenshots are saved to `screenshots/`.
 
 ### Card Design Templates
 
-Templates are PNG images in `static/templates/`. Each template is a 400x250 card preview. To add a new template:
+Full-size themed designs are PNG images in `static/image/` using the `template_<Name>.png` naming convention. To add a built-in design:
 
-1. Add a PNG to `static/templates/` (e.g., `rainbow.png`)
-2. Add an `<img>` element to the template selector in `templates/index.html`
-3. The selected template name is stored in the card's `designJson` field
+1. Add the PNG to `static/image/`.
+2. Add its name and dimensions to `sampleTemplates` in `static/js/index.js` and `static/js/redeem.js`.
+3. Rebuild the precompiled templates with `node build-templates.js`.
 
 ## License
 
