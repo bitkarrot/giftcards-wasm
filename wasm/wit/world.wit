@@ -169,7 +169,6 @@ world giftcards {
     export update-card: func(payload: string) -> string;
     export delete-card: func(payload: string) -> string;
     export bulk-create: func(payload: string) -> string;
-    export deliver-email: func(payload: string) -> string;
 
     // Public API exports
     export get-public-card: func(payload: string) -> string;

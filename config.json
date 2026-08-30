@@ -15,7 +15,6 @@
             {"name": "update-card", "visibility": "authenticated"},
             {"name": "delete-card", "visibility": "authenticated"},
             {"name": "bulk-create", "visibility": "authenticated"},
-            {"name": "deliver-email", "visibility": "authenticated"},
             {"name": "get-public-card", "visibility": "public"},
             {"name": "lnurl-params", "visibility": "public"},
             {"name": "lnurl-callback", "visibility": "public"},
@@ -84,12 +83,6 @@
             "auth": "user"
         },
         {
-            "method": "POST",
-            "path": "/cards/{cardId}/deliver",
-            "export": "deliver-email",
-            "auth": "user"
-        },
-        {
             "method": "GET",
             "path": "/cards/public/{tokenHash}",
             "export": "get-public-card",
@@ -129,7 +122,7 @@
     },
     "permissions": [
         {"id": "ext.storage.read", "description": "Read gift card storage"},
-        {"id": "ext.storage.read_public", "description": "Read public gift card data", "policies": [{"table_name": "cards", "public_fields": ["id", "cardId", "amount", "status", "recipientName", "senderName", "message", "recipientEmail", "emailStatus", "createdAt", "expiresAt", "redeemedAt", "expiredAt", "baseUrl", "designJson", "walletId", "tokenHash", "rawToken", "feeMode", "feePercent", "feeSats"], "source_id_field": "id"}, {"table_name": "magic_links", "public_fields": ["id", "email", "createdAt", "expiresAt", "usedAt"], "source_id_field": "id"}]},
+        {"id": "ext.storage.read_public", "description": "Read public gift card data", "policies": [{"table_name": "cards", "public_fields": ["id", "cardId", "amount", "status", "recipientName", "senderName", "message", "createdAt", "expiresAt", "redeemedAt", "expiredAt", "baseUrl", "designJson", "walletId", "tokenHash", "rawToken", "feeMode", "feePercent", "feeSats"], "source_id_field": "id"}, {"table_name": "magic_links", "public_fields": ["id", "email", "createdAt", "expiresAt", "usedAt"], "source_id_field": "id"}]},
         {"id": "ext.storage.write", "description": "Write gift card storage"},
         {"id": "ext.storage.append_public", "description": "Append public gift card data", "policies": [{"table": "magic_links", "source_table": "cards", "source_id_field": "tokenHash", "allowed_fields": ["email", "createdAt", "expiresAt", "usedAt"], "max_rows_per_source": 100}]},
         {"id": "wallet.balance.read", "description": "Read wallet balance"},
@@ -138,7 +131,6 @@
         {"id": "wallet.pay_invoice", "description": "Pay invoices (redeem gift cards)"},
         {"id": "wallet.pay_invoice_background", "description": "Pay invoices in background"},
         {"id": "wallet.list", "description": "List user wallets"},
-        {"id": "http.request", "description": "Send HTTP requests (email delivery)", "policies": [{"host": "*"}]},
         {"id": "websocket.publish", "description": "Publish websocket messages", "policies": [{"max_messages_per_second": 10}]}
     ]
 }

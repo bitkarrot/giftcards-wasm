@@ -78,20 +78,6 @@
         isUploadingTemplate: false,
         templateAssetStaged: false,
         designLoaded: false,
-        // Email delivery dialog
-        emailDialog: {
-          show: false,
-          loading: false,
-          card: null,
-          data: {
-            recipient_email: '',
-            email_mode: 'custom',
-            subject: '',
-            body: '',
-            template: 'notification',
-            bg_color: '#1976d2'
-          }
-        },
         // Bulk create dialog
         bulkDialog: {
           show: false,
@@ -138,16 +124,6 @@
         dateRange: null,
         // Multi-select
         selectedCards: [],
-        bulkEmailLoading: false,
-        // Bulk email confirmation dialog
-        bulkEmailDialog: {
-          show: false,
-          loading: false,
-          scope: 'filtered',
-          cards: [],
-          selected: [],
-          skipped: 0
-        },
         // Card edit dialog
         editDialog: {
           show: false,
@@ -157,7 +133,6 @@
             recipient_name: '',
             sender_name: '',
             message: '',
-            recipient_email: '',
             designMode: 'none'
           }
         },
@@ -200,13 +175,6 @@
             label: 'Fee',
             field: row => this.formatFeeLabel(row),
             sortable: false
-          },
-          {
-            name: 'delivery',
-            align: 'left',
-            label: 'Delivery',
-            field: row => row.emailStatus || 'not_sent',
-            sortable: true
           },
           {
             name: 'expiresAt',
@@ -252,12 +220,6 @@
       },
       previewQrSize() {
         return Math.round(this.qrSize * this.previewScale);
-      },
-      emailModeOptions() {
-        return [
-          { label: 'Custom Text', value: 'custom' },
-          { label: 'Fancy HTML Template', value: 'fancy' }
-        ];
       },
       previewTextStyle() {
         var alignMap = { left: 'left', center: 'center', right: 'right' };
@@ -307,7 +269,6 @@
           { name: 'status', align: 'left', label: 'Status', field: 'valid', sortable: false },
           { name: 'recipient_name', align: 'left', label: 'Recipient', field: 'recipient_name', sortable: false },
           { name: 'amount_sats', align: 'right', label: 'Amount', field: 'amount_sats', sortable: false },
-          { name: 'recipient_email', align: 'left', label: 'Email', field: 'recipient_email', sortable: false },
           { name: 'nostr_npub', align: 'left', label: 'Npub', field: 'nostr_npub', sortable: false },
           { name: 'errors', align: 'left', label: 'Errors', field: 'errors', sortable: false }
         ];
@@ -320,7 +281,6 @@
             valid: true,
             recipient_name: r.recipient_name,
             amount_sats: r.amount_sats,
-            recipient_email: r.recipient_email,
             nostr_npub: r.nostr_npub,
             errors: []
           };
@@ -331,7 +291,6 @@
             valid: false,
             recipient_name: '',
             amount_sats: '',
-            recipient_email: '',
             nostr_npub: '',
             errors: [e.field + ': ' + e.message]
           };
@@ -586,24 +545,6 @@
         return sample ? sample.label : templateName;
       },
 
-      getDeliveryStatusColor(status) {
-        switch (status) {
-          case 'not_sent': return 'grey-6';
-          case 'sent': return 'positive';
-          case 'failed': return 'negative';
-          default: return 'grey';
-        }
-      },
-
-      getDeliveryStatusText(status) {
-        switch (status) {
-          case 'not_sent': return 'Not sent';
-          case 'sent': return 'Sent';
-          case 'failed': return 'Failed';
-          default: return status;
-        }
-      },
-
       /**
        * Download a printable gift card image. The WASM backend doesn't have
        * a /print endpoint, so we composite the image client-side using a
@@ -791,15 +732,14 @@
 
         var headers = [
           'card_id', 'amount', 'status', 'recipient_name', 'sender_name',
-          'message', 'recipient_email', 'email_status', 'redemption_url',
+          'message', 'redemption_url',
           'created_at', 'expires_at', 'redeemed_at'
         ];
         var rows = cards.map(function (card) {
           return [
             card.id, card.amount, card.status,
             card.recipientName || '', card.senderName || '',
-            card.message || '', card.recipientEmail || '',
-            card.emailStatus || '', card.redemptionUrl || '',
+            card.message || '', card.redemptionUrl || '',
             card.createdAt || '', card.expiresAt || '', card.redeemedAt || ''
           ];
         });
@@ -1006,55 +946,6 @@
         }
       },
 
-      // ----- Email delivery dialog -----
-
-      isValidEmail(val) {
-        if (!val) return false;
-        var re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return re.test(val);
-      },
-
-      openEmailDialog(card) {
-        this.emailDialog.card = card;
-        this.emailDialog.data = {
-          recipient_email: card.recipientEmail || '',
-          email_mode: 'custom',
-          subject: 'You have a gift card from ' + (card.senderName || 'Anonymous'),
-          body: '',
-          template: 'notification',
-          bg_color: '#1976d2'
-        };
-        this.emailDialog.show = true;
-      },
-
-      async sendEmail() {
-        if (!this.emailDialog.card) return;
-        if (!this.isValidEmail(this.emailDialog.data.recipient_email)) {
-          this.$q.notify({ message: 'Enter a valid email address.', type: 'negative' });
-          return;
-        }
-        this.emailDialog.loading = true;
-        try {
-          var d = this.emailDialog.data;
-          var payload = {
-            recipientEmail: d.recipient_email,
-            emailMode: d.email_mode || 'custom',
-            subject: d.subject || '',
-            body: d.body || '',
-            template: d.template || 'notification',
-            bgColor: d.bg_color || '#1976d2'
-          };
-          await this.apiCall('POST', '/cards/' + this.emailDialog.card.id + '/deliver', payload);
-          this.emailDialog.show = false;
-          this.$q.notify({ message: 'Email sent successfully', type: 'positive' });
-          await this.loadGiftCards();
-        } catch (error) {
-          this.notifyError(error);
-        } finally {
-          this.emailDialog.loading = false;
-        }
-      },
-
       // ----- Bulk create dialog -----
 
       openBulkDialog() {
@@ -1188,8 +1079,8 @@
       },
 
       downloadCsvTemplate() {
-        var headers = 'recipient_name,amount_sats,recipient_email,nostr_npub,sender_name,message';
-        var exampleRow = 'Alice,1000,alice@example.com,,Bob,Happy birthday!';
+        var headers = 'recipient_name,amount_sats,nostr_npub,sender_name,message';
+        var exampleRow = 'Alice,1000,,Bob,Happy birthday!';
         var csv = headers + '\n' + exampleRow + '\n';
         var blob = new Blob([csv], { type: 'text/csv' });
         var url = window.URL.createObjectURL(blob);
@@ -1228,8 +1119,7 @@
         this.editDialog.data = {
           recipient_name: card.recipientName || '',
           sender_name: card.senderName || '',
-          message: card.message || '',
-          recipient_email: card.recipientEmail || ''
+          message: card.message || ''
         };
         this.resetCardDesigner();
         this.editDialog.data.designMode = 'none';
@@ -1336,8 +1226,7 @@
           var payload = {
             recipientName: d.recipient_name || '',
             senderName: d.sender_name || '',
-            message: d.message || '',
-            recipientEmail: d.recipient_email || ''
+            message: d.message || ''
           };
           if (this.designLoaded) {
             if (designMode === 'shared') {
@@ -1437,61 +1326,6 @@
         this.dateRange = null;
         this.selectedCards = [];
         this.loadGiftCards();
-      },
-
-      // ----- Bulk email sending -----
-
-      sendBulkEmails(scope) {
-        var targetCards;
-        if (scope === 'selected') {
-          targetCards = this.selectedCards;
-        } else {
-          targetCards = this.giftCards;
-        }
-        var emailable = targetCards.filter(function (c) { return c.recipientEmail; });
-        var skipped = targetCards.length - emailable.length;
-        this.bulkEmailDialog.scope = scope;
-        this.bulkEmailDialog.cards = emailable;
-        this.bulkEmailDialog.selected = emailable.slice();
-        this.bulkEmailDialog.skipped = skipped;
-        this.bulkEmailDialog.show = true;
-      },
-
-      async confirmBulkEmails() {
-        this.bulkEmailDialog.loading = true;
-        this.bulkEmailLoading = true;
-        var sent = 0;
-        var failed = 0;
-        try {
-          for (var i = 0; i < this.bulkEmailDialog.selected.length; i++) {
-            var card = this.bulkEmailDialog.selected[i];
-            try {
-              await this.apiCall('POST', '/cards/' + card.id + '/deliver', {
-                recipient_email: card.recipientEmail,
-                email_mode: 'custom',
-                subject: 'You have a gift card from ' + (card.senderName || 'Anonymous'),
-                body: ''
-              });
-              sent++;
-            } catch (err) {
-              failed++;
-            }
-          }
-          var skipped = this.bulkEmailDialog.skipped;
-          var msg = sent + ' emails sent, ' + skipped + ' skipped (no email address)';
-          if (failed > 0) {
-            this.$q.notify({ message: msg + ', ' + failed + ' failed', type: 'warning' });
-          } else {
-            this.$q.notify({ message: msg, type: 'positive' });
-          }
-          this.bulkEmailDialog.show = false;
-          await this.loadGiftCards();
-        } catch (error) {
-          this.notifyError(error);
-        } finally {
-          this.bulkEmailDialog.loading = false;
-          this.bulkEmailLoading = false;
-        }
       }
     }
   };

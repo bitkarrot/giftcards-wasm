@@ -838,14 +838,6 @@ impl Guest for Component {
         }))
     }
 
-    fn deliver_email(payload: String) -> String {
-        // Email delivery is not available in the WASM extension because the
-        // core host API does not provide a send_email function. The Python
-        // giftcards extension handles email delivery via LNbits SMTP settings.
-        let _ = payload;
-        err("Email delivery is not supported in the WASM extension. Use the Python giftcards extension for email delivery.")
-    }
-
     // --- Public API ---
 
     fn get_public_card(payload: String) -> String {

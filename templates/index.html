@@ -90,17 +90,6 @@
                   unelevated
                   dense
                   size="sm"
-                  color="primary"
-                  icon="mail"
-                  :label="'Send Emails (' + selectedCards.length + ' selected)'"
-                  @click="sendBulkEmails('selected')"
-                  :loading="bulkEmailLoading"
-                  class="q-mr-sm"
-                ></q-btn>
-                <q-btn
-                  unelevated
-                  dense
-                  size="sm"
                   icon="download"
                   :color="$q.dark.isActive ? 'grey-7' : 'grey-5'"
                   label="Download CSV"
@@ -118,17 +107,6 @@
                 ></q-btn>
               </div>
               <div class="col-auto" v-if="selectedCards.length === 0 && giftCards.length > 0">
-                <q-btn
-                  flat
-                  dense
-                  size="sm"
-                  color="grey"
-                  icon="mail"
-                  label="Send Emails (Filtered)"
-                  @click="sendBulkEmails('filtered')"
-                  :loading="bulkEmailLoading"
-                  class="q-mr-sm"
-                ></q-btn>
                 <q-btn
                   flat
                   dense
@@ -205,14 +183,6 @@
                         :label="getStatusText(col.value)"
                       ></q-badge>
                     </span>
-                    <span v-else-if="col.name === 'delivery'">
-                      <q-badge
-                        v-if="props.row.recipientEmail"
-                        :color="getDeliveryStatusColor(col.value)"
-                        :label="getDeliveryStatusText(col.value)"
-                      ></q-badge>
-                      <span v-else class="text-caption text-grey">&mdash;</span>
-                    </span>
                     <span v-else-if="col.name === 'expires_at'">
                       {{ col.value || 'Never' }}
                     </span>
@@ -224,16 +194,6 @@
                     <div class="q-pa-md">
                       <div class="row items-center justify-between q-mb-md">
                         <div class="row q-gutter-sm items-center">
-                          <q-btn
-                            round
-                            flat
-                            color="primary"
-                            icon="mail"
-                            @click="openEmailDialog(props.row)"
-                            aria-label="Send gift card email"
-                          >
-                            <q-tooltip>Send Email</q-tooltip>
-                          </q-btn>
                           <q-btn
                             round
                             flat
@@ -715,123 +675,6 @@
         @change="handleTemplateSelected"
       />
 
-      <!-- Email Delivery Dialog -->
-      <q-dialog v-model="emailDialog.show" position="top">
-        <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-          <q-form @submit="sendEmail">
-            <div class="q-gutter-md">
-              <h6 class="text-subtitle1 q-my-none">Send Gift Card Email</h6>
-
-              <q-input
-                filled
-                dense
-                v-model.trim="emailDialog.data.recipient_email"
-                type="email"
-                label="Recipient Email"
-                :rules="[val => !!val && isValidEmail(val) || 'Enter a valid email address']"
-              ></q-input>
-
-              <q-select
-                filled
-                dense
-                emit-value
-                map-options
-                v-model="emailDialog.data.email_mode"
-                :options="emailModeOptions"
-                label="Email Mode"
-              ></q-select>
-
-              <q-input
-                filled
-                dense
-                v-model.trim="emailDialog.data.subject"
-                type="text"
-                label="Subject"
-                hint="Defaults to 'You have a gift card from {sender}'."
-              ></q-input>
-
-              <div v-if="emailDialog.data.email_mode === 'custom'">
-                <q-input
-                  filled
-                  dense
-                  v-model.trim="emailDialog.data.body"
-                  type="textarea"
-                  label="Email Body"
-                  hint="Write your personal message to the recipient."
-                ></q-input>
-              </div>
-
-              <q-input
-                v-if="emailDialog.data.email_mode === 'fancy'"
-                filled
-                dense
-                class="color-picker"
-                v-model="emailDialog.data.bg_color"
-                type="color"
-                label="Background Color"
-              ></q-input>
-
-              <q-separator class="q-my-md"></q-separator>
-
-              <div class="text-caption">Preview:</div>
-              <q-card class="q-pa-md bg-grey-2">
-                <div class="text-caption text-grey-7">
-                  Subject: {{ emailDialog.data.subject || 'You have a gift card from ' + (emailDialog.card ? (emailDialog.card.senderName || 'Anonymous') : 'Anonymous') }}
-                </div>
-                <div v-if="emailDialog.data.email_mode === 'custom'" class="text-body2 q-mt-sm">
-                  {{ emailDialog.data.body || '(email body preview)' }}
-                </div>
-                <div v-else class="q-mt-sm">
-                  <div style="background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.1);">
-                    <div :style="{background: emailDialog.data.bg_color, padding: '16px', textAlign: 'center'}">
-                      <div style="color: #ffffff; font-size: 22px; font-weight: bold;">
-                        {{ emailDialog.card ? emailDialog.card.amount : 0 }} sats
-                      </div>
-                      <div style="color: rgba(255,255,255,0.7); font-size: 12px; margin-top: 4px;">
-                        Bitcoin Lightning Gift Card
-                      </div>
-                    </div>
-                    <div style="padding: 16px;">
-                      <div style="color: #333; font-size: 14px; margin-bottom: 12px;">
-                        <strong>From:</strong> {{ emailDialog.card ? (emailDialog.card.senderName || 'Anonymous') : 'Anonymous' }}
-                      </div>
-                      <div v-if="emailDialog.card && emailDialog.card.message" :style="{background: '#f5f5f5', borderLeft: '4px solid ' + emailDialog.data.bg_color, padding: '12px', marginBottom: '12px'}">
-                        <div style="color: #555; font-size: 13px;">{{ emailDialog.card.message }}</div>
-                      </div>
-                      <div style="text-align: center; margin: 16px 0;">
-                        <span :style="{display: 'inline-block', background: emailDialog.data.bg_color, color: '#ffffff', padding: '10px 28px', borderRadius: '6px', fontSize: '14px', fontWeight: '600'}">
-                          Claim Your Gift Card
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </q-card>
-
-              <div class="row q-mt-lg">
-                <q-btn
-                  unelevated
-                  color="primary"
-                  type="button"
-                  @click.prevent="sendEmail"
-                  label="Send Email"
-                  :loading="emailDialog.loading"
-                ></q-btn>
-                <q-btn
-                  v-close-popup
-                  flat
-                  dense
-                  round
-                  icon="close"
-                  class="q-ml-auto"
-                  aria-label="Close email dialog"
-                ></q-btn>
-              </div>
-            </div>
-          </q-form>
-        </q-card>
-      </q-dialog>
-
       <!-- Bulk Create Dialog -->
       <q-dialog v-model="bulkDialog.show" position="top">
         <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
@@ -1136,7 +979,7 @@
                       @click="downloadCsvTemplate"
                     ></q-btn>
                     <div class="text-caption text-grey">
-                      Required: recipient_name, amount_sats. Optional: recipient_email, nostr_npub, sender_name, message.
+                      Required: recipient_name, amount_sats. Optional: nostr_npub, sender_name, message.
                     </div>
 
                     <div v-if="bulkDialog.csvRows.length > 0 || bulkDialog.csvErrors > 0">
@@ -1177,7 +1020,6 @@
                             </q-td>
                             <q-td key="recipient_name" :props="props">{{ props.row.recipientName }}</q-td>
                             <q-td key="amount_sats" :props="props">{{ props.row.amount_sats }} sats</q-td>
-                            <q-td key="recipient_email" :props="props">{{ props.row.recipientEmail || '—' }}</q-td>
                             <q-td key="nostr_npub" :props="props">{{ props.row.nostr_npub || '—' }}</q-td>
                             <q-td key="errors" :props="props">
                               <span v-if="props.row.errors && props.row.errors.length > 0" class="text-caption text-negative">
@@ -1447,10 +1289,6 @@
                 <div class="text-caption">Sender</div>
                 <div class="text-body2">{{ detailDialog.card.senderName || 'Anonymous' }}</div>
               </div>
-              <div class="col-12 col-md-6">
-                <div class="text-caption">Email</div>
-                <div class="text-body2">{{ detailDialog.card.recipientEmail || '—' }}</div>
-              </div>
               <div class="col-12">
                 <div class="text-caption">Message</div>
                 <div class="text-body2">{{ detailDialog.card.message || 'No message' }}</div>
@@ -1466,13 +1304,6 @@
               <div class="col-12 col-md-6">
                 <div class="text-caption">Redeemed</div>
                 <div class="text-body2">{{ detailDialog.card.redeemedAt ? formatDate(detailDialog.card.redeemedAt) : '—' }}</div>
-              </div>
-              <div class="col-12 col-md-6">
-                <div class="text-caption">Delivery Status</div>
-                <q-badge
-                  :color="getDeliveryStatusColor(detailDialog.card.emailStatus || 'not_sent')"
-                  :label="getDeliveryStatusText(detailDialog.card.emailStatus || 'not_sent')"
-                ></q-badge>
               </div>
               <div class="col-12 col-md-6">
                 <div class="text-caption">Redemption Fee</div>
@@ -1566,15 +1397,6 @@
                 v-model.trim="editDialog.data.message"
                 type="textarea"
                 label="Personal Message"
-              ></q-input>
-
-              <q-input
-                filled
-                dense
-                v-model.trim="editDialog.data.recipient_email"
-                type="email"
-                label="Recipient Email"
-                :rules="[val => !val || isValidEmail(val) || 'Enter a valid email address']"
               ></q-input>
 
               <!-- Card Design Section -->
@@ -1845,80 +1667,6 @@
                 color="grey"
                 class="q-ml-auto"
                 label="Cancel"
-              ></q-btn>
-            </div>
-          </div>
-        </q-card>
-      </q-dialog>
-
-      <!-- Bulk Email Confirmation Dialog -->
-      <q-dialog v-model="bulkEmailDialog.show" persistent>
-        <q-card class="q-pa-lg" style="min-width: 400px; max-width: 600px">
-          <div class="q-gutter-md">
-            <div class="text-center">
-              <q-icon name="mail" :color="bulkEmailDialog.cards.length === 0 ? 'grey' : 'primary'" size="40px"></q-icon>
-            </div>
-
-            <h6 class="text-subtitle1 q-my-none text-center">
-              {{ bulkEmailDialog.cards.length === 0 ? 'No Emailable Cards' : 'Send Emails?' }}
-            </h6>
-
-            <div v-if="bulkEmailDialog.cards.length === 0">
-              <q-banner color="warning" rounded icon="warning" dense>
-                No cards with recipient email addresses were found. Add an email address to a card before sending.
-              </q-banner>
-            </div>
-
-            <div v-else>
-              <p class="text-body2 text-center" v-if="bulkEmailDialog.skipped > 0">
-                <q-badge color="grey-6" :label="bulkEmailDialog.skipped + ' skipped (no email)'"></q-badge>
-              </p>
-
-              <q-banner color="info" rounded icon="info" dense>
-                Select which recipients to email, then click Send.
-              </q-banner>
-
-              <q-table
-                dense
-                flat
-                :rows="bulkEmailDialog.cards"
-                row-key="id"
-                v-model:selected="bulkEmailDialog.selected"
-                selection="multiple"
-                :columns="[
-                  {name: 'recipient_name', label: 'Recipient', field: 'recipient_name', align: 'left'},
-                  {name: 'recipient_email', label: 'Email', field: 'recipient_email', align: 'left'},
-                  {name: 'amount', label: 'Amount', field: 'amount', align: 'right', format: val => val + ' sats'}
-                ]"
-                :rows-per-page-options="[0]"
-                hide-pagination
-                style="max-height: 300px; overflow: auto"
-              >
-                <template v-slot:body-cell-recipient_name="props">
-                  <q-td :props="props">
-                    {{ props.row.recipientName || '—' }}
-                  </q-td>
-                </template>
-              </q-table>
-            </div>
-
-            <div class="row q-mt-lg">
-              <q-btn
-                v-if="bulkEmailDialog.cards.length > 0"
-                unelevated
-                color="primary"
-                icon="send"
-                :label="'Send ' + (bulkEmailDialog.selected ? bulkEmailDialog.selected.length : 0) + ' Email' + (bulkEmailDialog.selected && bulkEmailDialog.selected.length === 1 ? '' : 's')"
-                :loading="bulkEmailDialog.loading"
-                :disable="!bulkEmailDialog.selected || bulkEmailDialog.selected.length === 0"
-                @click="confirmBulkEmails"
-              ></q-btn>
-              <q-btn
-                v-close-popup
-                flat
-                color="grey"
-                class="q-ml-auto"
-                label="Close"
               ></q-btn>
             </div>
           </div>
