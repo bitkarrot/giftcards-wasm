@@ -1,11 +1,14 @@
 {
-    "id": "giftcards_wasm",
+    "id": "giftcardswasm",
     "name": "Gift Cards (WASM)",
     "short_description": "Create and redeem Lightning gift cards with LNURL-withdraw (WASM port)",
     "version": "0.1.0",
+    "min_lnbits_version": "1.6.0rc3",
+    "tile": "/ext-assets/giftcardswasm/assets/icon.png",
+    "tags": ["gift-cards", "lnurl-withdraw", "wasm", "lightning"],
     "extension_type": "wasm",
     "wasm": {
-        "module": "wasm/target/wasm32-wasip1/release/giftcards_wasm.wasm",
+        "module": "wasm/module.wasm",
         "wit": "wasm/wit/world.wit",
         "world": "giftcards",
         "exports": [
@@ -25,22 +28,22 @@
     },
     "ui_routes": [
         {
-            "path": "/giftcards_wasm",
+            "path": "/giftcardswasm",
             "entrypoint": "templates/index.html",
             "auth": "user"
         },
         {
-            "path": "/giftcards_wasm/redeem/{token}",
+            "path": "/giftcardswasm/redeem/{token}",
             "entrypoint": "templates/redeem.html",
             "auth": "public"
         },
         {
-            "path": "/giftcards_wasm/claim",
+            "path": "/giftcardswasm/claim",
             "entrypoint": "templates/claim.html",
             "auth": "public"
         },
         {
-            "path": "/giftcards_wasm/claim/{token}",
+            "path": "/giftcardswasm/claim/{token}",
             "entrypoint": "templates/claim.html",
             "auth": "public"
         }

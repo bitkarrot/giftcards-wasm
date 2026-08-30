@@ -3,7 +3,7 @@
 (function () {
   'use strict';
 
-  var API_BASE = '/api/v1/ext/giftcards_wasm';
+  var API_BASE = '/api/v1/ext/giftcardswasm';
 
   async function apiCall(method, path, body) {
     await window.LNbitsBridge.connect();
@@ -31,7 +31,7 @@
         if (this.$q && this.$q.dark) this.$q.dark.set(true);
       }
       // Check if route has :magic_token — if so, verify the magic link
-      // URL pattern: /ext/giftcards_wasm/claim/{token}
+      // URL pattern: /ext/giftcardswasm/claim/{token}
       // The claim page runs inside an iframe, so use route params from the bridge.
       var token = '';
       try {
@@ -110,7 +110,7 @@
         // Navigate back to the claim entry page
         var self = this;
         window.LNbitsBridge.connect().then(function () {
-          return window.LNbitsBridge.replaceRoute('/ext/giftcards_wasm/claim');
+          return window.LNbitsBridge.replaceRoute('/ext/giftcardswasm/claim');
         }).catch(function () {
           // Fallback: just reset the state
           self.resetClaim();

@@ -3,8 +3,8 @@
 (function () {
   'use strict';
 
-  var API_BASE = '/api/v1/ext/giftcards_wasm';
-  var IMG_BASE = '/ext-assets/giftcards_wasm/image';
+  var API_BASE = '/api/v1/ext/giftcardswasm';
+  var IMG_BASE = '/ext-assets/giftcardswasm/image';
 
   // Sample template dimensions (must match index.js)
   var SAMPLE_TEMPLATES = [
@@ -121,7 +121,7 @@
       lnurlUrl: function () {
         if (!this.tokenHash) return '';
         var baseUrl = window.location.origin;
-        return baseUrl + '/api/v1/ext/giftcards_wasm/lnurl/' + this.tokenHash;
+        return baseUrl + '/api/v1/ext/giftcardswasm/lnurl/' + this.tokenHash;
       },
       lnurl: function () {
         if (!this.lnurlUrl) return '';

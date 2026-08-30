@@ -1,4 +1,4 @@
-# giftcards-wasm
+# giftcardswasm
 
 A WASM Component Model extension for [LNbits](https://lnbits.com) that lets wallet owners create, send, and redeem Bitcoin Lightning gift cards. Ported from the original Python `giftcards` extension to a WASM module targeting LNbits v1.6.0-rc3+ with the WASM extension runtime.
 
@@ -8,7 +8,7 @@ A WASM Component Model extension for [LNbits](https://lnbits.com) that lets wall
 - **Design templates** — choose from eight themed designs plus portrait and landscape layouts
 - **LNURL-withdraw redemption** — each card has an LNURL-withdraw URL; recipients redeem via any Lightning wallet
 - **QR code rendering** — client-side canvas QR codes for easy scanning (no server-side image generation)
-- **Public redeem page** — shareable link (`/ext/giftcards_wasm/redeem/{token}`) showing card details and QR
+- **Public redeem page** — shareable link (`/ext/giftcardswasm/redeem/{token}`) showing card details and QR
 - **Bulk create / delete** — manage many cards at once
 - **Lazy expiry** — expired cards are detected on access without a background cron
 
@@ -45,7 +45,7 @@ The browser UI cannot access LNbits APIs directly because the extension iframe u
 ### Project structure
 
 ```text
-giftcards-wasm/
+giftcardswasm/
 ├── config.json                  # Manifest, routes, exports, and permissions
 ├── build-templates.js           # Precompiles CSP-safe Vue render functions
 ├── wasm/
@@ -68,7 +68,7 @@ giftcards-wasm/
 │   ├── image/                   # Full-size card designs
 │   └── assets/icon.png          # Extension icon
 └── tests/
-    ├── e2e/giftcards-wasm.spec.ts
+    ├── e2e/giftcardswasm.spec.ts
     └── giftcards.spec.js
 ```
 
@@ -132,16 +132,17 @@ The frontend uses CSP-safe JavaScript, precompiled Vue templates, and the `LNbit
 ```bash
 cd wasm
 cargo component build --release
+cp target/wasm32-wasip1/release/giftcardswasm.wasm module.wasm
 ```
 
-This produces `wasm/target/wasm32-wasip1/release/giftcards_wasm.wasm`.
+The tracked `wasm/module.wasm` file is the module included in tagged release archives.
 
 ### Install the extension
 
 Copy the extension directory into LNbits' WASM extensions folder:
 
 ```bash
-cp -r giftcards-wasm /path/to/lnbits/data/wasm_extensions/giftcards_wasm
+cp -r giftcardswasm /path/to/lnbits/data/wasm_extensions/giftcardswasm
 ```
 
 Restart LNbits. The extension will appear in the navigation drawer.

@@ -414,8 +414,8 @@ impl Guest for Component {
         let (card_id, raw_token, token_hash) = generate_tokens();
         let now = h_now();
 
-        let redemption_url = format!("{}/ext/giftcards_wasm/redeem/{}", base_url, raw_token);
-        let lnurl_url = format!("{}/api/v1/ext/giftcards_wasm/lnurl/{}", base_url, token_hash);
+        let redemption_url = format!("{}/ext/giftcardswasm/redeem/{}", base_url, raw_token);
+        let lnurl_url = format!("{}/api/v1/ext/giftcardswasm/lnurl/{}", base_url, token_hash);
 
         let fee_mode = req.get("feeMode").and_then(|v| v.as_str()).unwrap_or("default").to_string();
         let fee_percent = req.get("feePercent")
@@ -536,7 +536,7 @@ impl Guest for Component {
                 let base_url = c.get("baseUrl").and_then(|v| v.as_str()).unwrap_or("");
                 let raw_token = c.get("rawToken").and_then(|v| v.as_str()).unwrap_or("");
                 let redemption_url = if !raw_token.is_empty() {
-                    format!("{}/ext/giftcards_wasm/redeem/{}", base_url, raw_token)
+                    format!("{}/ext/giftcardswasm/redeem/{}", base_url, raw_token)
                 } else {
                     String::new()
                 };
@@ -594,7 +594,7 @@ impl Guest for Component {
         let redemption_url = if include_link {
             let base_url = card.get("baseUrl").and_then(|v| v.as_str()).unwrap_or("");
             let raw_token = card.get("rawToken").and_then(|v| v.as_str()).unwrap_or("");
-            format!("{}/ext/giftcards_wasm/redeem/{}", base_url, raw_token)
+            format!("{}/ext/giftcardswasm/redeem/{}", base_url, raw_token)
         } else {
             String::new()
         };
@@ -947,7 +947,7 @@ impl Guest for Component {
             .unwrap_or("");
         let card_id = card.get("cardId").and_then(|v| v.as_str()).unwrap_or("");
 
-        let callback_url = format!("{}/api/v1/ext/giftcards_wasm/lnurl/callback", base_url);
+        let callback_url = format!("{}/api/v1/ext/giftcardswasm/lnurl/callback", base_url);
 
         ok(json!({
             "tag": "withdrawRequest",
@@ -1138,7 +1138,7 @@ impl Guest for Component {
                 let card = pending.first().unwrap();
                 let base_url = card.get("baseUrl").and_then(|v| v.as_str()).unwrap_or("");
                 let sender = card.get("senderName").and_then(|v| v.as_str()).unwrap_or("Anonymous");
-                let magic_link_url = format!("{}/ext/giftcards_wasm/claim/{}", base_url, magic_token);
+                let magic_link_url = format!("{}/ext/giftcardswasm/claim/{}", base_url, magic_token);
 
                 let api_key = req.get("emailApiKey").and_then(|k| k.as_str()).unwrap_or("");
                 let email_body = format!(
@@ -1257,7 +1257,7 @@ impl Guest for Component {
                     "senderName": c.get("senderName").and_then(|v| v.as_str()).unwrap_or(""),
                     "recipientName": c.get("recipientName").and_then(|v| v.as_str()).unwrap_or(""),
                     "message": c.get("message").and_then(|v| v.as_str()).unwrap_or(""),
-                    "redemptionUrl": format!("{}/ext/giftcards_wasm/redeem/{}", base_url, raw_token),
+                    "redemptionUrl": format!("{}/ext/giftcardswasm/redeem/{}", base_url, raw_token),
                 }))
             })
             .collect();

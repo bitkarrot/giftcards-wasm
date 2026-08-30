@@ -9,9 +9,9 @@
   'use strict';
 
   // API base path for the WASM extension
-  var API_BASE = '/api/v1/ext/giftcards_wasm';
+  var API_BASE = '/api/v1/ext/giftcardswasm';
   // Static asset base for template images
-  var IMG_BASE = '/ext-assets/giftcards_wasm/image';
+  var IMG_BASE = '/ext-assets/giftcardswasm/image';
 
   window.PageGiftCards = {
     render: window.INDEX_RENDER_FN(),
@@ -382,7 +382,7 @@
 
       initDarkMode() {
         var stored = null;
-        try { stored = localStorage.getItem('giftcards_wasm.darkMode'); } catch (e) {}
+        try { stored = localStorage.getItem('giftcardswasm.darkMode'); } catch (e) {}
         if (stored === 'true') {
           this.isDarkMode = true;
         } else if (stored === 'false') {
@@ -397,7 +397,7 @@
       toggleDarkMode() {
         this.isDarkMode = !this.isDarkMode;
         this.applyDarkMode();
-        try { localStorage.setItem('giftcards_wasm.darkMode', String(this.isDarkMode)); } catch (e) {}
+        try { localStorage.setItem('giftcardswasm.darkMode', String(this.isDarkMode)); } catch (e) {}
       },
 
       applyDarkMode() {
@@ -673,7 +673,7 @@
           var detail = await this.apiCall('GET', '/cards/' + card.id, null);
           var redemptionUrl = detail.redemptionUrl || card.redemptionUrl || '';
           if (!redemptionUrl && detail.rawToken) {
-            redemptionUrl = window.location.origin + '/ext/giftcards_wasm/redeem/' + detail.rawToken;
+            redemptionUrl = window.location.origin + '/ext/giftcardswasm/redeem/' + detail.rawToken;
           }
 
           // Build a composite image on a canvas

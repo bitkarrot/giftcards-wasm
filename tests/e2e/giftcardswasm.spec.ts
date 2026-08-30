@@ -1,4 +1,4 @@
-import {test, expect, type Page} from '@playwright/test'
+import {test, expect, request as playwrightRequest, type Page} from '@playwright/test'
 
 const BASE_URL = process.env.LNBITS_E2E_BASE_URL ?? 'http://127.0.0.1:5000'
 
@@ -31,10 +31,10 @@ async function login(page: Page) {
 }
 
 /**
- * Navigate to the giftcards-wasm extension page.
+ * Navigate to the giftcardswasm extension page.
  */
 async function navigateToExtension(page: Page) {
-  await page.goto(`${BASE_URL}/ext/giftcards_wasm`)
+  await page.goto(`${BASE_URL}/ext/giftcardswasm`)
   await page.waitForTimeout(3_000)
 
   // Dismiss any open dialogs on the parent page (e.g. "what's new" prompts)
@@ -99,7 +99,7 @@ async function createRedeemUrl(page: Page) {
     data: {username: ADMIN_USER, password: ADMIN_PASS},
   })
   const {access_token} = await loginResp.json()
-  const cardResp = await page.request.post(`${BASE_URL}/api/v1/ext/giftcards_wasm/cards`, {
+  const cardResp = await page.request.post(`${BASE_URL}/api/v1/ext/giftcardswasm/cards`, {
     headers: {Authorization: `Bearer ${access_token}`},
     data: {amount: 500, recipientName: 'Clipboard test', senderName: 'Playwright'},
   })
@@ -112,7 +112,25 @@ async function createRedeemUrl(page: Page) {
   return redeemUrl.startsWith('/') ? `${BASE_URL}${redeemUrl}` : redeemUrl
 }
 
-test.describe('giftcards-wasm extension', () => {
+test.describe('giftcardswasm extension', () => {
+  test.beforeAll(async () => {
+    const request = await playwrightRequest.newContext({baseURL: BASE_URL})
+    const loginResp = await request.post('/api/v1/auth', {
+      data: {username: ADMIN_USER, password: ADMIN_PASS},
+    })
+    const {access_token} = await loginResp.json()
+    const headers = {Authorization: `Bearer ${access_token}`}
+    const cardsResp = await request.get('/api/v1/ext/giftcardswasm/cards', {headers})
+    const cardsPayload = await cardsResp.json()
+    if (!(cardsPayload.data || []).length) {
+      await request.post('/api/v1/ext/giftcardswasm/cards', {
+        headers,
+        data: {amount: 500, recipientName: 'E2E card', senderName: 'Playwright'},
+      })
+    }
+    await request.dispose()
+  })
+
   test.beforeEach(async ({page}) => {
     // Dismiss LNbits disclaimer and what's-new prompts
     await page.addInitScript(
@@ -289,7 +307,7 @@ test.describe('giftcards-wasm extension', () => {
     })
     const {access_token} = await loginResp.json()
 
-    const cardsResp = await page.request.get(`${BASE_URL}/api/v1/ext/giftcards_wasm/cards`, {
+    const cardsResp = await page.request.get(`${BASE_URL}/api/v1/ext/giftcardswasm/cards`, {
       headers: {Authorization: `Bearer ${access_token}`},
     })
     const cardsData = await cardsResp.json()
