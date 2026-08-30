@@ -874,6 +874,43 @@ pub mod lnbits {
                         .finish()
                 }
             }
+            /// --- Email ---
+            #[derive(Clone)]
+            pub struct SendEmailRequest {
+                pub to_email: _rt::String,
+                pub subject: _rt::String,
+                pub body: _rt::String,
+                pub html_body: Option<_rt::String>,
+            }
+            impl ::core::fmt::Debug for SendEmailRequest {
+                fn fmt(
+                    &self,
+                    f: &mut ::core::fmt::Formatter<'_>,
+                ) -> ::core::fmt::Result {
+                    f.debug_struct("SendEmailRequest")
+                        .field("to-email", &self.to_email)
+                        .field("subject", &self.subject)
+                        .field("body", &self.body)
+                        .field("html-body", &self.html_body)
+                        .finish()
+                }
+            }
+            #[derive(Clone)]
+            pub struct SendEmailResponse {
+                pub ok: bool,
+                pub error: Option<_rt::String>,
+            }
+            impl ::core::fmt::Debug for SendEmailResponse {
+                fn fmt(
+                    &self,
+                    f: &mut ::core::fmt::Formatter<'_>,
+                ) -> ::core::fmt::Result {
+                    f.debug_struct("SendEmailResponse")
+                        .field("ok", &self.ok)
+                        .field("error", &self.error)
+                        .finish()
+                }
+            }
             /// --- System ---
             #[repr(C)]
             #[derive(Clone, Copy)]
@@ -2188,6 +2225,123 @@ pub mod lnbits {
                 }
             }
             #[allow(unused_unsafe, clippy::all)]
+            pub fn send_email(req: &SendEmailRequest) -> SendEmailResponse {
+                unsafe {
+                    #[cfg_attr(target_pointer_width = "64", repr(align(8)))]
+                    #[cfg_attr(target_pointer_width = "32", repr(align(4)))]
+                    struct RetArea(
+                        [::core::mem::MaybeUninit<
+                            u8,
+                        >; 4 * ::core::mem::size_of::<*const u8>()],
+                    );
+                    let mut ret_area = RetArea(
+                        [::core::mem::MaybeUninit::uninit(); 4
+                            * ::core::mem::size_of::<*const u8>()],
+                    );
+                    let SendEmailRequest {
+                        to_email: to_email0,
+                        subject: subject0,
+                        body: body0,
+                        html_body: html_body0,
+                    } = req;
+                    let vec1 = to_email0;
+                    let ptr1 = vec1.as_ptr().cast::<u8>();
+                    let len1 = vec1.len();
+                    let vec2 = subject0;
+                    let ptr2 = vec2.as_ptr().cast::<u8>();
+                    let len2 = vec2.len();
+                    let vec3 = body0;
+                    let ptr3 = vec3.as_ptr().cast::<u8>();
+                    let len3 = vec3.len();
+                    let (result5_0, result5_1, result5_2) = match html_body0 {
+                        Some(e) => {
+                            let vec4 = e;
+                            let ptr4 = vec4.as_ptr().cast::<u8>();
+                            let len4 = vec4.len();
+                            (1i32, ptr4.cast_mut(), len4)
+                        }
+                        None => (0i32, ::core::ptr::null_mut(), 0usize),
+                    };
+                    let ptr6 = ret_area.0.as_mut_ptr().cast::<u8>();
+                    #[cfg(target_arch = "wasm32")]
+                    #[link(wasm_import_module = "lnbits:extension/host")]
+                    unsafe extern "C" {
+                        #[link_name = "send-email"]
+                        fn wit_import7(
+                            _: *mut u8,
+                            _: usize,
+                            _: *mut u8,
+                            _: usize,
+                            _: *mut u8,
+                            _: usize,
+                            _: i32,
+                            _: *mut u8,
+                            _: usize,
+                            _: *mut u8,
+                        );
+                    }
+                    #[cfg(not(target_arch = "wasm32"))]
+                    unsafe extern "C" fn wit_import7(
+                        _: *mut u8,
+                        _: usize,
+                        _: *mut u8,
+                        _: usize,
+                        _: *mut u8,
+                        _: usize,
+                        _: i32,
+                        _: *mut u8,
+                        _: usize,
+                        _: *mut u8,
+                    ) {
+                        unreachable!()
+                    }
+                    unsafe {
+                        wit_import7(
+                            ptr1.cast_mut(),
+                            len1,
+                            ptr2.cast_mut(),
+                            len2,
+                            ptr3.cast_mut(),
+                            len3,
+                            result5_0,
+                            result5_1,
+                            result5_2,
+                            ptr6,
+                        )
+                    };
+                    let l8 = i32::from(*ptr6.add(0).cast::<u8>());
+                    let l9 = i32::from(
+                        *ptr6.add(::core::mem::size_of::<*const u8>()).cast::<u8>(),
+                    );
+                    let result13 = SendEmailResponse {
+                        ok: _rt::bool_lift(l8 as u8),
+                        error: match l9 {
+                            0 => None,
+                            1 => {
+                                let e = {
+                                    let l10 = *ptr6
+                                        .add(2 * ::core::mem::size_of::<*const u8>())
+                                        .cast::<*mut u8>();
+                                    let l11 = *ptr6
+                                        .add(3 * ::core::mem::size_of::<*const u8>())
+                                        .cast::<usize>();
+                                    let len12 = l11;
+                                    let bytes12 = _rt::Vec::from_raw_parts(
+                                        l10.cast(),
+                                        len12,
+                                        len12,
+                                    );
+                                    _rt::string_lift(bytes12)
+                                };
+                                Some(e)
+                            }
+                            _ => _rt::invalid_enum_discriminant(),
+                        },
+                    };
+                    result13
+                }
+            }
+            #[allow(unused_unsafe, clippy::all)]
             pub fn now() -> NowResponse {
                 unsafe {
                     #[cfg(target_arch = "wasm32")]
@@ -2450,9 +2604,9 @@ pub(crate) use __export_giftcards_impl as export;
 )]
 #[doc(hidden)]
 #[allow(clippy::octal_escapes)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 2441] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\x89\x12\x01A\x02\x01\
-A\x11\x01BY\x01r\x02\x05tables\x02ids\x04\0\x13storage-get-request\x03\0\0\x01ks\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 2568] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\x88\x13\x01A\x02\x01\
+A\x11\x01B_\x01r\x02\x05tables\x02ids\x04\0\x13storage-get-request\x03\0\0\x01ks\
 \x01r\x01\x09data-json\x02\x04\0\x14storage-get-response\x03\0\x03\x01r\x02\x05t\
 ables\x02ids\x04\0\x1astorage-get-public-request\x03\0\x05\x01r\x02\x05tables\x09\
 data-json\x02\x04\0\x13storage-set-request\x03\0\x07\x01r\x01\x02ok\x7f\x04\0\x14\
@@ -2478,28 +2632,31 @@ withdrawable-msatw\x10withdrawable-satw\x10fee-reserve-msatw\x0ffee-reserve-satw
 s\x04names\x08currency\x02\x04\0\x0ewallet-summary\x03\0&\x01p'\x01r\x01\x07wall\
 ets(\x04\0\x15list-wallets-response\x03\0)\x01o\x02ss\x01p+\x01r\x04\x06methods\x03\
 urls\x07headers,\x04body\x02\x04\0\x13http-request-params\x03\0-\x01r\x03\x0bsta\
-tus-codey\x07headers,\x04bodys\x04\0\x12http-response-data\x03\0/\x01r\x01\x09ti\
-mestampw\x04\0\x0cnow-response\x03\01\x01r\x01\x06prefixs\x04\0\x11random-id-req\
-uest\x03\03\x01r\x01\x02ids\x04\0\x12random-id-response\x03\05\x01r\x02\x05level\
-s\x07messages\x04\0\x0blog-request\x03\07\x01r\x01\x02ok\x7f\x04\0\x0clog-respon\
-se\x03\09\x01@\x01\x03req\x01\0\x04\x04\0\x0bstorage-get\x01;\x01@\x01\x03req\x06\
-\0\x04\x04\0\x12storage-get-public\x01<\x01@\x01\x03req\x08\0\x0a\x04\0\x0bstora\
-ge-set\x01=\x01@\x01\x03req\x0c\0\x0e\x04\0\x0estorage-delete\x01>\x01@\x01\x03r\
-eq\x10\0\x12\x04\0\x15storage-get-paginated\x01?\x01@\x01\x03req\x14\0\x12\x04\0\
-\x1cstorage-get-public-paginated\x01@\x01@\x01\x03req\x17\0\x19\x04\0\x0bpay-inv\
-oice\x01A\x01@\x01\x03req\x1b\0\x1d\x04\0\x0ecreate-invoice\x01B\x01@\x01\x03req\
-\x1f\0!\x04\0\x15update-wallet-balance\x01C\x01@\x01\x03req#\0%\x04\0\x0ewallet-\
-balance\x01D\x01@\0\0*\x04\0\x11list-user-wallets\x01E\x01@\x01\x03req.\00\x04\0\
-\x0chttp-request\x01F\x01@\0\02\x04\0\x03now\x01G\x01@\x01\x03req4\06\x04\0\x09r\
-andom-id\x01H\x01@\x01\x03req8\0:\x04\0\x03log\x01I\x03\0\x15lnbits:extension/ho\
-st\x05\0\x01@\x01\x07payloads\0s\x04\0\x0bcreate-card\x01\x01\x04\0\x09get-cards\
-\x01\x01\x04\0\x08get-card\x01\x01\x04\0\x0bupdate-card\x01\x01\x04\0\x0bdelete-\
-card\x01\x01\x04\0\x0bbulk-create\x01\x01\x04\0\x0bbulk-delete\x01\x01\x04\0\x0d\
-deliver-email\x01\x01\x04\0\x0fget-public-card\x01\x01\x04\0\x0clnurl-params\x01\
-\x01\x04\0\x0elnurl-callback\x01\x01\x04\0\x0bclaim-cards\x01\x01\x04\0\x0cverif\
-y-claim\x01\x01\x04\0\x0fon-invoice-paid\x01\x01\x04\0\x1alnbits:extension/giftc\
-ards\x04\0\x0b\x0f\x01\0\x09giftcards\x03\0\0\0G\x09producers\x01\x0cprocessed-b\
-y\x02\x0dwit-component\x070.227.1\x10wit-bindgen-rust\x060.41.0";
+tus-codey\x07headers,\x04bodys\x04\0\x12http-response-data\x03\0/\x01r\x04\x08to\
+-emails\x07subjects\x04bodys\x09html-body\x02\x04\0\x12send-email-request\x03\01\
+\x01r\x02\x02ok\x7f\x05error\x02\x04\0\x13send-email-response\x03\03\x01r\x01\x09\
+timestampw\x04\0\x0cnow-response\x03\05\x01r\x01\x06prefixs\x04\0\x11random-id-r\
+equest\x03\07\x01r\x01\x02ids\x04\0\x12random-id-response\x03\09\x01r\x02\x05lev\
+els\x07messages\x04\0\x0blog-request\x03\0;\x01r\x01\x02ok\x7f\x04\0\x0clog-resp\
+onse\x03\0=\x01@\x01\x03req\x01\0\x04\x04\0\x0bstorage-get\x01?\x01@\x01\x03req\x06\
+\0\x04\x04\0\x12storage-get-public\x01@\x01@\x01\x03req\x08\0\x0a\x04\0\x0bstora\
+ge-set\x01A\x01@\x01\x03req\x0c\0\x0e\x04\0\x0estorage-delete\x01B\x01@\x01\x03r\
+eq\x10\0\x12\x04\0\x15storage-get-paginated\x01C\x01@\x01\x03req\x14\0\x12\x04\0\
+\x1cstorage-get-public-paginated\x01D\x01@\x01\x03req\x17\0\x19\x04\0\x0bpay-inv\
+oice\x01E\x01@\x01\x03req\x1b\0\x1d\x04\0\x0ecreate-invoice\x01F\x01@\x01\x03req\
+\x1f\0!\x04\0\x15update-wallet-balance\x01G\x01@\x01\x03req#\0%\x04\0\x0ewallet-\
+balance\x01H\x01@\0\0*\x04\0\x11list-user-wallets\x01I\x01@\x01\x03req.\00\x04\0\
+\x0chttp-request\x01J\x01@\x01\x03req2\04\x04\0\x0asend-email\x01K\x01@\0\06\x04\
+\0\x03now\x01L\x01@\x01\x03req8\0:\x04\0\x09random-id\x01M\x01@\x01\x03req<\0>\x04\
+\0\x03log\x01N\x03\0\x15lnbits:extension/host\x05\0\x01@\x01\x07payloads\0s\x04\0\
+\x0bcreate-card\x01\x01\x04\0\x09get-cards\x01\x01\x04\0\x08get-card\x01\x01\x04\
+\0\x0bupdate-card\x01\x01\x04\0\x0bdelete-card\x01\x01\x04\0\x0bbulk-create\x01\x01\
+\x04\0\x0bbulk-delete\x01\x01\x04\0\x0ddeliver-email\x01\x01\x04\0\x0fget-public\
+-card\x01\x01\x04\0\x0clnurl-params\x01\x01\x04\0\x0elnurl-callback\x01\x01\x04\0\
+\x0bclaim-cards\x01\x01\x04\0\x0cverify-claim\x01\x01\x04\0\x0fon-invoice-paid\x01\
+\x01\x04\0\x1alnbits:extension/giftcards\x04\0\x0b\x0f\x01\0\x09giftcards\x03\0\0\
+\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.227.1\x10wit-bind\
+gen-rust\x060.41.0";
 #[inline(never)]
 #[doc(hidden)]
 pub fn __link_custom_section_describing_imports() {

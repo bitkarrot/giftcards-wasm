@@ -146,6 +146,19 @@ interface host {
     }
     http-request: func(req: http-request-params) -> http-response-data;
 
+    // --- Email ---
+    record send-email-request {
+        to-email: string,
+        subject: string,
+        body: string,
+        html-body: option<string>,
+    }
+    record send-email-response {
+        ok: bool,
+        error: option<string>,
+    }
+    send-email: func(req: send-email-request) -> send-email-response;
+
     // --- System ---
     record now-response {
         timestamp: u64,

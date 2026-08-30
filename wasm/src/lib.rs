@@ -899,13 +899,6 @@ impl Guest for Component {
             _ => return err("recipientEmail is required"),
         };
 
-        let api_url = match req.get("emailApiUrl").and_then(|u| u.as_str()) {
-            Some(u) if !u.is_empty() => u,
-            _ => return err("emailApiUrl is required (configure an email API endpoint)"),
-        };
-
-        let api_key = req.get("emailApiKey").and_then(|k| k.as_str()).unwrap_or("");
-
         // Look up card
         let filters = json!({"cardId": card_id});
         let (rows, _) = h_storage_get_paginated("cards", &filters, 1, 0);
@@ -919,47 +912,69 @@ impl Guest for Component {
 
         // Build email content
         let subject = req.get("subject").and_then(|s| s.as_str()).unwrap_or("You received a gift card!");
-        let body = req.get("body").and_then(|b| b.as_str()).unwrap_or("");
+        let custom_body = req.get("body").and_then(|b| b.as_str()).unwrap_or("");
         let base_url = card.get("baseUrl").and_then(|v| v.as_str()).unwrap_or("");
         let raw_token = card.get("rawToken").and_then(|v| v.as_str()).unwrap_or("");
         let amount = card.get("amount").and_then(|v| v.as_u64()).unwrap_or(0);
         let sender = card.get("senderName").and_then(|v| v.as_str()).unwrap_or("Anonymous");
+        let message = card.get("message").and_then(|v| v.as_str()).unwrap_or("");
+        let email_mode = req.get("emailMode").and_then(|v| v.as_str()).unwrap_or("custom");
+        let bg_color = req.get("bgColor").and_then(|v| v.as_str()).unwrap_or("#1976d2");
 
         let redemption_url = format!("{}/ext/giftcards_wasm/redeem/{}", base_url, raw_token);
-        let email_body = if body.is_empty() {
-            format!(
-                "You received a gift card worth {} sats from {}!\n\nRedeem it here: {}",
-                amount, sender, redemption_url
-            )
+        let claim_url = format!("{}/ext/giftcards_wasm/claim", base_url);
+
+        // Build plain text and HTML bodies
+        let (text_body, html_body) = if email_mode == "fancy" {
+            let text = format!(
+                "You have a gift card from {}.\n\nAmount: {} sats\nMessage: {}\n\nClaim your gift card: {}",
+                sender, amount, message, claim_url
+            );
+            let html = format!(
+                r#"<html><body style="background-color:{};font-family:sans-serif;padding:40px;">
+<div style="max-width:600px;margin:0 auto;background:white;border-radius:12px;padding:32px;">
+<h2>You have a gift card from {}</h2>
+<p style="font-size:18px;">Amount: <strong>{} sats</strong></p>
+<p>Message: {}</p>
+<a href="{}" style="display:inline-block;background:#1976d2;color:white;padding:12px 32px;border-radius:6px;text-decoration:none;margin-top:16px;">Claim Gift Card</a>
+</div></body></html>"#,
+                bg_color, sender, amount, message, claim_url
+            );
+            (text, Some(html))
         } else {
-            body.to_string()
+            let text = if custom_body.is_empty() {
+                format!(
+                    "You received a gift card worth {} sats from {}!\n\nRedeem it here: {}",
+                    amount, sender, redemption_url
+                )
+            } else {
+                format!("{}\n\nClaim your gift card: {}", custom_body, claim_url)
+            };
+            let html = format!(
+                r#"<html><body style="font-family:sans-serif;padding:40px;">
+<div style="max-width:600px;margin:0 auto;">
+<p>{}</p>
+<a href="{}" style="display:inline-block;background:#1976d2;color:white;padding:12px 32px;border-radius:6px;text-decoration:none;margin-top:16px;">Claim Gift Card</a>
+</div></body></html>"#,
+                if custom_body.is_empty() {
+                    format!("You received a gift card worth {} sats from {}!", amount, sender)
+                } else {
+                    custom_body.to_string()
+                },
+                claim_url
+            );
+            (text, Some(html))
         };
 
-        // Send via HTTP API (e.g. Resend, Mailgun, etc.)
-        let email_payload = json!({
-            "to": recipient_email,
-            "subject": subject,
-            "body": email_body,
-            "redemptionUrl": redemption_url,
-            "amount": amount,
-            "sender": sender,
+        // Send via the host's send_email function (uses LNbits SMTP settings)
+        let resp = host::send_email(&host::SendEmailRequest {
+            to_email: recipient_email.to_string(),
+            subject: subject.to_string(),
+            body: text_body,
+            html_body,
         });
 
-        let mut headers: Vec<(String, String)> = vec![
-            ("Content-Type".to_string(), "application/json".to_string()),
-        ];
-        if !api_key.is_empty() {
-            headers.push(("Authorization".to_string(), format!("Bearer {}", api_key)));
-        }
-
-        let resp = host::http_request(&host::HttpRequestParams {
-            method: "POST".to_string(),
-            url: api_url.to_string(),
-            headers,
-            body: Some(email_payload.to_string()),
-        });
-
-        let success = resp.status_code >= 200 && resp.status_code < 300;
+        let success = resp.ok;
         card["emailStatus"] = if success { json!("sent") } else { json!("failed") };
 
         h_storage_set("cards", &card);
@@ -967,7 +982,8 @@ impl Guest for Component {
         if success {
             ok(json!({"status": "sent"}))
         } else {
-            err(&format!("Email API returned status {}", resp.status_code))
+            let error_msg = resp.error.unwrap_or_else(|| "Unknown error".to_string());
+            err(&format!("Email delivery failed: {}", error_msg))
         }
     }
 
