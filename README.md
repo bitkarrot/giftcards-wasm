@@ -1,5 +1,9 @@
 # giftcardswasm
 
+<p align="center">
+  <img src="static/assets/icon.png" alt="giftcardswasm icon" width="160">
+</p>
+
 A WASM Component Model extension for [LNbits](https://lnbits.com) that lets wallet owners create, send, and redeem Bitcoin Lightning gift cards. Ported from the original Python `giftcards` extension to a WASM module targeting LNbits v1.6.0-rc3+ with the WASM extension runtime.
 
 ## Features
