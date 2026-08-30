@@ -1,0 +1,152 @@
+/* Gift Cards WASM — Dark Mode
+ *
+ * Mirrors the LNbits "classic" purple dark theme:
+ *   --q-primary:   #673ab7
+ *   --q-secondary: #9c27b0
+ *   --q-dark-page: #1f2234
+ *   card bg:       #333646
+ *
+ * Quasar adds body--dark to <body> when Dark mode is active.
+ * We target that class to override colors for our extension UI.
+ */
+
+body.body--dark {
+  --q-primary: #673ab7;
+  --q-secondary: #9c27b0;
+  --q-dark-page: #1f2234;
+  background-color: #1f2234;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+/* Cards: match LNbits classic dark card background */
+body.body--dark .q-card {
+  background-color: #333646;
+}
+
+/* Dialogs: slightly lighter than cards */
+body.body--dark .q-dialog .q-card {
+  background-color: #333646;
+}
+
+/* Table: transparent background like LNbits */
+body.body--dark .q-table {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.88);
+}
+body.body--Dark .q-table thead th {
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+body.body--dark .q-table tbody td {
+  color: rgba(255, 255, 255, 0.88);
+}
+body.body--dark .q-table__bottom {
+  color: rgba(255, 255, 255, 0.6);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Inputs: dark field background */
+body.body--dark .q-field--filled .q-field__control {
+  background: rgba(255, 255, 255, 0.06);
+}
+body.body--dark .q-field--filled .q-field__native,
+body.body--dark .q-field--filled .q-field__prefix,
+body.body--dark .q-field--filled .q-field__suffix {
+  color: rgba(255, 255, 255, 0.88);
+}
+body.body--dark .q-field--filled .q-field__label {
+  color: rgba(255, 255, 255, 0.5);
+}
+body.body--dark .q-field--focused .q-field__label {
+  color: #9c27b0;
+}
+
+/* Select dropdowns */
+body.body--dark .q-menu {
+  background-color: #333646;
+  color: rgba(255, 255, 255, 0.88);
+}
+body.body--dark .q-item {
+  color: rgba(255, 255, 255, 0.88);
+}
+body.body--dark .q-item--active {
+  color: #9c27b0;
+}
+
+/* Banners / notifications */
+body.body--dark .q-banner {
+  background-color: #333646;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+/* Tabs */
+body.body--dark .q-tab {
+  color: rgba(255, 255, 255, 0.6);
+}
+body.body--dark .q-tab--active {
+  color: #9c27b0;
+}
+body.body--dark .q-tab-panels {
+  background: transparent;
+}
+
+/* Separators */
+body.body--dark .q-separator {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Card designer preview area */
+body.body--dark .card-preview {
+  background: #2a2d3e;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Color picker border */
+body.body--dark .color-picker.q-field input[type="color"] {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Resize handle */
+body.body--dark .resize-handle {
+  background: #673ab7;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Draggable QR border */
+body.body--dark .draggable-qr {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Text helpers */
+body.body--dark .text-grey-7 {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+body.body--dark .text-grey-8 {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+body.body--dark .text-dark {
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+/* Badge / chip backgrounds */
+body.body--dark .bg-grey-2 {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+body.body--dark .bg-grey-3 {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* Scrollbar (Chrome) */
+body.body--dark::-webkit-scrollbar {
+  width: 10px;
+}
+body.body--dark::-webkit-scrollbar-track {
+  background: #1f2234;
+}
+body.body--dark::-webkit-scrollbar-thumb {
+  background: #444760;
+  border-radius: 5px;
+}
+body.body--dark::-webkit-scrollbar-thumb:hover {
+  background: #555870;
+}

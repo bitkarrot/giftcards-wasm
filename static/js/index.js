@@ -19,6 +19,7 @@
       return {
         giftCards: [],
         loading: false,
+        isDarkMode: false,
         walletBalance: 0,
         // Wallet info from bridge context (no g.user global in WASM)
         walletId: null,
@@ -319,6 +320,8 @@
     },
     mounted() {
       var self = this;
+      // Initialize dark mode from localStorage or system preference
+      this.initDarkMode();
       window.LNbitsBridge.connect().then(function () {
         self.loadGiftCards();
         self.loadWalletBalance();
@@ -328,6 +331,38 @@
       });
     },
     methods: {
+      // ----- Dark mode -----
+
+      initDarkMode() {
+        var stored = null;
+        try { stored = localStorage.getItem('giftcards_wasm.darkMode'); } catch (e) {}
+        if (stored === 'true') {
+          this.isDarkMode = true;
+        } else if (stored === 'false') {
+          this.isDarkMode = false;
+        } else {
+          // Auto-detect from system preference on first load
+          this.isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+        this.applyDarkMode();
+      },
+
+      toggleDarkMode() {
+        this.isDarkMode = !this.isDarkMode;
+        this.applyDarkMode();
+        try { localStorage.setItem('giftcards_wasm.darkMode', String(this.isDarkMode)); } catch (e) {}
+      },
+
+      applyDarkMode() {
+        if (this.isDarkMode) {
+          document.body.classList.add('body--dark');
+          if (this.$q && this.$q.dark) this.$q.dark.set(true);
+        } else {
+          document.body.classList.remove('body--dark');
+          if (this.$q && this.$q.dark) this.$q.dark.set(false);
+        }
+      },
+
       // ----- Bridge API helpers -----
 
       /**

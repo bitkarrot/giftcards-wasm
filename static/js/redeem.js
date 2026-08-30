@@ -139,6 +139,11 @@
     },
     mounted: function () {
       var self = this;
+      // Auto-detect dark mode from system preference
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('body--dark');
+        if (this.$q && this.$q.dark) this.$q.dark.set(true);
+      }
       this.loadGiftCard().then(function () {
         var params = new URLSearchParams(window.location.search);
         if (params.get('error') === '1') {

@@ -273,4 +273,38 @@ test.describe('giftcards-wasm extension', () => {
 
     expect(realErrors).toEqual([])
   })
+
+  test('dark mode toggle works', async ({page}) => {
+    await navigateToExtension(page)
+
+    const frame = extFrame(page)
+    await expect(frame.locator('table, .q-table').first()).toBeVisible({timeout: 30_000})
+
+    // Initially body should not have body--dark (light mode by default in headless)
+    const bodyClass = await frame.locator('body').getAttribute('class')
+    const initiallyDark = bodyClass?.includes('body--dark') ?? false
+
+    // Find the dark mode toggle button (round, flat with dark_mode/light_mode icon)
+    const darkToggle = frame.locator('button:has(.q-icon.text-dark_mode), button:has(.q-icon.text-light_mode), .q-btn--flat.q-btn--round').first()
+    await expect(darkToggle).toBeVisible({timeout: 10_000})
+
+    // Click to toggle
+    await darkToggle.click()
+    await page.waitForTimeout(1_000)
+
+    // Body should now have body--dark class
+    const bodyClassAfter = await frame.locator('body').getAttribute('class')
+    expect(bodyClassAfter).toContain('body--dark')
+
+    // Take screenshot showing dark mode
+    await page.screenshot({path: 'test-results/dark-mode-on.png', fullPage: true})
+
+    // Toggle back to light
+    await darkToggle.click()
+    await page.waitForTimeout(1_000)
+    const bodyClassFinal = await frame.locator('body').getAttribute('class')
+    expect(bodyClassFinal).not.toContain('body--dark')
+
+    await page.screenshot({path: 'test-results/dark-mode-off.png', fullPage: true})
+  })
 })

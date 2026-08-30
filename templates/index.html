@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="/ext-assets/giftcards_wasm/_lnbits/material-icons.css">
 <link rel="stylesheet" href="/ext-assets/giftcards_wasm/_lnbits/bundle.min.css">
 <link rel="stylesheet" href="/ext-assets/giftcards_wasm/css/index.css">
+<link rel="stylesheet" href="/ext-assets/giftcards_wasm/css/dark-mode.css">
 </head>
 <body>
 <div id="q-app" class="vue-pending">
@@ -33,7 +34,17 @@
                   color="primary"
                   label="Bulk Create"
                   @click="openBulkDialog"
+                  class="q-mr-sm"
                 ></q-btn>
+                <q-btn
+                  flat
+                  dense
+                  round
+                  :icon="isDarkMode ? 'light_mode' : 'dark_mode'"
+                  @click="toggleDarkMode"
+                >
+                  <q-tooltip>{{ isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode' }}</q-tooltip>
+                </q-btn>
               </div>
             </div>
 

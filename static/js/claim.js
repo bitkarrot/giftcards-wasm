@@ -25,6 +25,11 @@
       };
     },
     mounted: async function () {
+      // Auto-detect dark mode from system preference
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('body--dark');
+        if (this.$q && this.$q.dark) this.$q.dark.set(true);
+      }
       // Check if route has :magic_token — if so, verify the magic link
       // URL pattern: /ext/giftcards_wasm/claim/{token}
       // The claim page runs inside an iframe, so use route params from the bridge.
