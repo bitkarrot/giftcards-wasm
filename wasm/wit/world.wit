@@ -94,17 +94,6 @@ interface host {
     }
     create-invoice: func(req: create-invoice-request) -> create-invoice-response;
 
-    // --- Update Wallet Balance (direct debit/credit) ---
-    record update-wallet-balance-request {
-        wallet-id: string,
-        amount-sat: s64,
-    }
-    record update-wallet-balance-response {
-        ok: bool,
-        balance-msat: s64,
-    }
-    update-wallet-balance: func(req: update-wallet-balance-request) -> update-wallet-balance-response;
-
     record wallet-balance-request {
         wallet-id: string,
     }
@@ -146,19 +135,6 @@ interface host {
     }
     http-request: func(req: http-request-params) -> http-response-data;
 
-    // --- Email ---
-    record send-email-request {
-        to-email: string,
-        subject: string,
-        body: string,
-        html-body: option<string>,
-    }
-    record send-email-response {
-        ok: bool,
-        error: option<string>,
-    }
-    send-email: func(req: send-email-request) -> send-email-response;
-
     // --- System ---
     record now-response {
         timestamp: u64,
@@ -193,7 +169,6 @@ world giftcards {
     export update-card: func(payload: string) -> string;
     export delete-card: func(payload: string) -> string;
     export bulk-create: func(payload: string) -> string;
-    export bulk-delete: func(payload: string) -> string;
     export deliver-email: func(payload: string) -> string;
 
     // Public API exports

@@ -15,7 +15,6 @@
             {"name": "update-card", "visibility": "authenticated"},
             {"name": "delete-card", "visibility": "authenticated"},
             {"name": "bulk-create", "visibility": "authenticated"},
-            {"name": "bulk-delete", "visibility": "authenticated"},
             {"name": "deliver-email", "visibility": "authenticated"},
             {"name": "get-public-card", "visibility": "public"},
             {"name": "lnurl-params", "visibility": "public"},
@@ -80,12 +79,6 @@
         },
         {
             "method": "DELETE",
-            "path": "/cards/bulk",
-            "export": "bulk-delete",
-            "auth": "user"
-        },
-        {
-            "method": "DELETE",
             "path": "/cards/{cardId}",
             "export": "delete-card",
             "auth": "user"
@@ -140,8 +133,6 @@
         {"id": "ext.storage.write", "description": "Write gift card storage"},
         {"id": "ext.storage.append_public", "description": "Append public gift card data", "policies": [{"table": "magic_links", "source_table": "cards", "source_id_field": "tokenHash", "allowed_fields": ["email", "createdAt", "expiresAt", "usedAt"], "max_rows_per_source": 100}]},
         {"id": "wallet.balance.read", "description": "Read wallet balance"},
-        {"id": "wallet.balance.update", "description": "Debit/credit wallet for gift card lock/reclaim"},
-        {"id": "system.send_email", "description": "Send gift card delivery emails via LNbits SMTP"},
         {"id": "wallet.create_invoice", "description": "Create invoices"},
         {"id": "wallet.create_invoice_public", "description": "Create public invoices", "policies": [{"table": "cards", "wallet_field": "walletId"}]},
         {"id": "wallet.pay_invoice", "description": "Pay invoices (redeem gift cards)"},

@@ -1388,9 +1388,16 @@
         if (this.bulkDeleteDialog.cardIds.length === 0) return;
         this.bulkDeleteDialog.loading = true;
         try {
-          var data = await this.apiCall('DELETE', '/cards/bulk', { cardIds: this.bulkDeleteDialog.cardIds });
+          var deleted = 0;
+          for (var i = 0; i < this.bulkDeleteDialog.cardIds.length; i++) {
+            try {
+              await this.apiCall('DELETE', '/cards/' + encodeURIComponent(this.bulkDeleteDialog.cardIds[i]));
+              deleted++;
+            } catch (e) {
+              // Continue deleting remaining cards even if one fails
+            }
+          }
           this.bulkDeleteDialog.show = false;
-          var deleted = (data && data.deleted) || 0;
           var msg = deleted + ' card' + (deleted === 1 ? '' : 's') + ' deleted';
           this.$q.notify({ message: msg, type: 'positive' });
           this.selectedCards = [];

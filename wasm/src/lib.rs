@@ -112,27 +112,6 @@ fn h_wallet_balance(wallet_id: &str) -> Option<Value> {
     }))
 }
 
-/// Adjust a wallet's balance by a signed amount of sats.
-/// Negative = debit (lock sats), positive = credit (reclaim sats).
-/// Uses the host's update_wallet_balance function, which mirrors the
-/// Python extension's update_wallet_balance service.
-fn h_update_wallet_balance(wallet_id: &str, amount_sat: i64) -> bool {
-    if amount_sat == 0 {
-        return true;
-    }
-    let resp = host::update_wallet_balance(&host::UpdateWalletBalanceRequest {
-        wallet_id: wallet_id.to_string(),
-        amount_sat,
-    });
-    if !resp.ok {
-        h_log("error", &format!(
-            "update_wallet_balance failed: {} sats for wallet {}",
-            amount_sat, wallet_id
-        ));
-    }
-    resp.ok
-}
-
 fn h_list_wallets() -> Vec<(String, String)> {
     let resp = host::list_user_wallets();
     resp.wallets
@@ -369,19 +348,9 @@ fn check_lazy_expiry(card: &mut Value) {
             if let Ok(exp_ts) = expires_at.parse::<u64>() {
                 let now = h_now();
                 if now > exp_ts {
-                    // Reclaim locked sats to the issuer wallet before flipping status.
-                    let wallet_id = card
-                        .get("walletId")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("")
-                        .to_string();
-                    let amount = card.get("amount").and_then(|v| v.as_u64()).unwrap_or(0);
-                    if !wallet_id.is_empty() && amount > 0 {
-                        h_update_wallet_balance(&wallet_id, amount as i64);
-                    }
                     card["status"] = json!("expired");
                     card["expiredAt"] = json!(now.to_string());
-                    // Persist the status change so we don't reclaim again on the next read.
+                    // Persist the status change so we don't re-process on the next read.
                     let id = card.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
                     if !id.is_empty() {
                         h_storage_set("cards", card);
@@ -522,13 +491,6 @@ impl Guest for Component {
 
         if !h_storage_set("cards", &card) {
             return err("Failed to store gift card");
-        }
-
-        // Debit (lock) the issuer wallet by `amount` sats now that the card is saved.
-        if !h_update_wallet_balance(&wallet_id, -(amount as i64)) {
-            // Roll back the card creation if the debit failed.
-            h_storage_delete("cards", &token_hash);
-            return err("Failed to lock sats for gift card");
         }
 
         ok(json!({
@@ -774,18 +736,6 @@ impl Guest for Component {
             None => return err("Gift card not found"),
         };
 
-        // Reclaim locked sats to the issuer wallet if the card is still active.
-        // Expired cards already had sats reclaimed by the expiry task; redeemed
-        // cards already paid out — skip reclaim for those (matches Python reclaim_sats_and_delete).
-        let status = card.get("status").and_then(|s| s.as_str()).unwrap_or("active");
-        if status == "active" {
-            let wallet_id = card.get("walletId").and_then(|v| v.as_str()).unwrap_or("").to_string();
-            let amount = card.get("amount").and_then(|v| v.as_u64()).unwrap_or(0);
-            if !wallet_id.is_empty() && amount > 0 {
-                h_update_wallet_balance(&wallet_id, amount as i64);
-            }
-        }
-
         let id = card.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
         h_storage_delete("cards", &id);
 
@@ -888,148 +838,12 @@ impl Guest for Component {
         }))
     }
 
-    fn bulk_delete(payload: String) -> String {
-        let req: Value = match serde_json::from_str(&payload) {
-            Ok(v) => v,
-            Err(e) => return err(&format!("Invalid request: {e}")),
-        };
-
-        let card_ids: Vec<String> = req
-            .get("cardIds")
-            .and_then(|c| c.as_array())
-            .map(|arr| {
-                arr.iter()
-                    .filter_map(|v| v.as_str().map(|s| s.to_string()))
-                    .collect()
-            })
-            .unwrap_or_default();
-
-        let mut deleted = 0;
-        for card_id in &card_ids {
-            let del_req = json!({"cardId": card_id});
-            let result = Self::delete_card(del_req.to_string());
-            if let Ok(resp) = serde_json::from_str::<Value>(&result) {
-                if resp.get("status").and_then(|v| v.as_str()) == Some("deleted") {
-                    deleted += 1;
-                }
-            }
-        }
-
-        ok(json!({
-            "status": "deleted",
-            "deleted": deleted,
-        }))
-    }
-
     fn deliver_email(payload: String) -> String {
-        let req: Value = match serde_json::from_str(&payload) {
-            Ok(v) => v,
-            Err(e) => return err(&format!("Invalid request: {e}")),
-        };
-
-        let card_id = match req.get("cardId").and_then(|c| c.as_str()) {
-            Some(c) if !c.is_empty() => c,
-            _ => return err("cardId is required"),
-        };
-
-        let recipient_email = match req.get("recipientEmail").and_then(|e| e.as_str()) {
-            Some(e) if !e.is_empty() => e,
-            _ => return err("recipientEmail is required"),
-        };
-
-        // Look up card
-        let filters = json!({"cardId": card_id});
-        let (rows, _) = h_storage_get_paginated("cards", &filters, 1, 0);
-        let mut card = match rows.first() {
-            Some(c) => c.clone(),
-            None => return err("Gift card not found"),
-        };
-
-        // Update recipient email
-        card["recipientEmail"] = json!(recipient_email);
-
-        // Build email content
-        let subject = req.get("subject").and_then(|s| s.as_str()).unwrap_or("You received a gift card!");
-        let custom_body = req.get("body").and_then(|b| b.as_str()).unwrap_or("");
-        // Prefer __baseUrl from the request (injected fresh by the host on
-        // every call) over the stored card baseUrl, which may be stale if the
-        // card was created before the proxy-header fix.
-        let base_url = req.get("__baseUrl")
-            .and_then(|v| v.as_str())
-            .filter(|b| !b.is_empty())
-            .or_else(|| card.get("baseUrl").and_then(|v| v.as_str()))
-            .unwrap_or("");
-        let raw_token = card.get("rawToken").and_then(|v| v.as_str()).unwrap_or("");
-        let amount = card.get("amount").and_then(|v| v.as_u64()).unwrap_or(0);
-        let sender = card.get("senderName").and_then(|v| v.as_str()).unwrap_or("Anonymous");
-        let message = card.get("message").and_then(|v| v.as_str()).unwrap_or("");
-        let email_mode = req.get("emailMode").and_then(|v| v.as_str()).unwrap_or("custom");
-        let bg_color = req.get("bgColor").and_then(|v| v.as_str()).unwrap_or("#1976d2");
-
-        let redemption_url = format!("{}/ext/giftcards_wasm/redeem/{}", base_url, raw_token);
-        let claim_url = format!("{}/ext/giftcards_wasm/claim", base_url);
-
-        // Build plain text and HTML bodies
-        let (text_body, html_body) = if email_mode == "fancy" {
-            let text = format!(
-                "You have a gift card from {}.\n\nAmount: {} sats\nMessage: {}\n\nClaim your gift card: {}",
-                sender, amount, message, claim_url
-            );
-            let html = format!(
-                r#"<html><body style="background-color:{};font-family:sans-serif;padding:40px;">
-<div style="max-width:600px;margin:0 auto;background:white;border-radius:12px;padding:32px;">
-<h2>You have a gift card from {}</h2>
-<p style="font-size:18px;">Amount: <strong>{} sats</strong></p>
-<p>Message: {}</p>
-<a href="{}" style="display:inline-block;background:#1976d2;color:white;padding:12px 32px;border-radius:6px;text-decoration:none;margin-top:16px;">Claim Gift Card</a>
-</div></body></html>"#,
-                bg_color, sender, amount, message, claim_url
-            );
-            (text, Some(html))
-        } else {
-            let text = if custom_body.is_empty() {
-                format!(
-                    "You received a gift card worth {} sats from {}!\n\nRedeem it here: {}",
-                    amount, sender, redemption_url
-                )
-            } else {
-                format!("{}\n\nClaim your gift card: {}", custom_body, claim_url)
-            };
-            let html = format!(
-                r#"<html><body style="font-family:sans-serif;padding:40px;">
-<div style="max-width:600px;margin:0 auto;">
-<p>{}</p>
-<a href="{}" style="display:inline-block;background:#1976d2;color:white;padding:12px 32px;border-radius:6px;text-decoration:none;margin-top:16px;">Claim Gift Card</a>
-</div></body></html>"#,
-                if custom_body.is_empty() {
-                    format!("You received a gift card worth {} sats from {}!", amount, sender)
-                } else {
-                    custom_body.to_string()
-                },
-                claim_url
-            );
-            (text, Some(html))
-        };
-
-        // Send via the host's send_email function (uses LNbits SMTP settings)
-        let resp = host::send_email(&host::SendEmailRequest {
-            to_email: recipient_email.to_string(),
-            subject: subject.to_string(),
-            body: text_body,
-            html_body,
-        });
-
-        let success = resp.ok;
-        card["emailStatus"] = if success { json!("sent") } else { json!("failed") };
-
-        h_storage_set("cards", &card);
-
-        if success {
-            ok(json!({"status": "sent"}))
-        } else {
-            let error_msg = resp.error.unwrap_or_else(|| "Unknown error".to_string());
-            err(&format!("Email delivery failed: {}", error_msg))
-        }
+        // Email delivery is not available in the WASM extension because the
+        // core host API does not provide a send_email function. The Python
+        // giftcards extension handles email delivery via LNbits SMTP settings.
+        let _ = payload;
+        err("Email delivery is not supported in the WASM extension. Use the Python giftcards extension for email delivery.")
     }
 
     // --- Public API ---
@@ -1273,11 +1087,7 @@ impl Guest for Component {
         if let Some(api_url) = req.get("emailApiUrl").and_then(|u| u.as_str()) {
             if !api_url.is_empty() {
                 let card = pending.first().unwrap();
-                let base_url = req.get("__baseUrl")
-                    .and_then(|v| v.as_str())
-                    .filter(|b| !b.is_empty())
-                    .or_else(|| card.get("baseUrl").and_then(|v| v.as_str()))
-                    .unwrap_or("");
+                let base_url = card.get("baseUrl").and_then(|v| v.as_str()).unwrap_or("");
                 let sender = card.get("senderName").and_then(|v| v.as_str()).unwrap_or("Anonymous");
                 let magic_link_url = format!("{}/ext/giftcards_wasm/claim/{}", base_url, magic_token);
 
