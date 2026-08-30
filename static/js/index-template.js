@@ -490,10 +490,9 @@ return function render(_ctx, _cache) {
                         _createVNode(_component_q_btn, {
                           flat: "",
                           label: "Swagger API",
-                          type: "a",
-                          href: "/docs",
-                          target: "_top"
-                        })
+                          icon: "api",
+                          onClick: _ctx.openSwaggerDocs
+                        }, null, 8 /* PROPS */, ["onClick"])
                       ]),
                       _: 1 /* STABLE */
                     })

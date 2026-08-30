@@ -818,6 +818,19 @@
         }
       },
 
+      // ----- Swagger docs -----
+
+      async openSwaggerDocs() {
+        // The iframe sandbox blocks top-level navigation (target="_top"),
+        // so we use the bridge to open /docs in a new tab. The parent
+        // shows an "Open link" confirmation dialog before opening.
+        try {
+          await window.LNbitsBridge.openInNewTab('/docs');
+        } catch (error) {
+          this.notifyError(error);
+        }
+      },
+
       // ----- Card Designer: drag interaction -----
 
       startDrag(event, target) {
