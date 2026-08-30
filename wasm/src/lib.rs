@@ -85,11 +85,21 @@ fn h_storage_get_paginated(
 }
 
 fn h_pay_invoice(wallet_id: &str, payment_request: &str, max_sat: u64) -> Value {
+    h_pay_invoice_with_fee(wallet_id, payment_request, max_sat, None)
+}
+
+fn h_pay_invoice_with_fee(
+    wallet_id: &str,
+    payment_request: &str,
+    max_sat: u64,
+    fee_reserve_msat: Option<u64>,
+) -> Value {
     let resp = host::pay_invoice(&host::PayInvoiceRequest {
         wallet_id: wallet_id.to_string(),
         payment_request: payment_request.to_string(),
         max_sat: Some(max_sat),
         description: String::new(),
+        fee_reserve_msat,
     });
     json!({
         "ok": resp.ok,
@@ -302,6 +312,7 @@ fn bech32_hrp_expand(hrp: &[u8]) -> Vec<u8> {
 fn bech32_create_checksum(hrp: &[u8], data: &[u8], constant: u32) -> Vec<u8> {
     let mut values = bech32_hrp_expand(hrp);
     values.extend_from_slice(data);
+    values.extend_from_slice(&[0u8; 6]); // 6 zero bytes for checksum extraction
     let polymod = bech32_polymod(&values) ^ constant;
     let mut ret = Vec::with_capacity(6);
     for i in 0..6 {
@@ -434,8 +445,10 @@ impl Guest for Component {
         };
 
         let base_url = req
-            .get("baseUrl")
+            .get("__baseUrl")
             .and_then(|b| b.as_str())
+            .filter(|b| !b.is_empty())
+            .or_else(|| req.get("baseUrl").and_then(|b| b.as_str()))
             .unwrap_or("")
             .to_string();
 
@@ -444,6 +457,24 @@ impl Guest for Component {
 
         let redemption_url = format!("{}/ext/giftcards_wasm/redeem/{}", base_url, raw_token);
         let lnurl_url = format!("{}/api/v1/ext/giftcards_wasm/lnurl/{}", base_url, token_hash);
+
+        let fee_mode = req.get("feeMode").and_then(|v| v.as_str()).unwrap_or("default").to_string();
+        let fee_percent = req.get("feePercent")
+            .map(|v| {
+                if v.is_string() {
+                    v.as_str().unwrap_or("0").to_string()
+                } else if v.is_f64() {
+                    format!("{}", v.as_f64().unwrap_or(0.0))
+                } else if v.is_i64() {
+                    format!("{}", v.as_i64().unwrap_or(0))
+                } else if v.is_u64() {
+                    format!("{}", v.as_u64().unwrap_or(0))
+                } else {
+                    "0".to_string()
+                }
+            })
+            .unwrap_or_else(|| "0".to_string());
+        let fee_sats = req.get("feeSats").and_then(|v| v.as_u64()).unwrap_or(0);
 
         let mut card = json!({
             "id": token_hash,
@@ -464,6 +495,9 @@ impl Guest for Component {
             "redeemedAt": "",
             "expiredAt": "",
             "baseUrl": base_url,
+            "feeMode": fee_mode,
+            "feePercent": fee_percent,
+            "feeSats": fee_sats,
         });
 
         // Split the design object into separate qr_config and text_config JSON
@@ -570,6 +604,9 @@ impl Guest for Component {
                     "templateName": c.get("templateName").and_then(|v| v.as_str()).unwrap_or(""),
                     "templateAssetId": c.get("templateAssetId").and_then(|v| v.as_str()).unwrap_or(""),
                     "redemptionUrl": redemption_url,
+                    "feeMode": c.get("feeMode").and_then(|v| v.as_str()).unwrap_or("default"),
+                    "feePercent": c.get("feePercent").and_then(|v| v.as_str()).and_then(|s| s.parse::<f64>().ok()).unwrap_or(0.0),
+                    "feeSats": c.get("feeSats").and_then(|v| v.as_u64()).unwrap_or(0),
                 })
             })
             .collect();
@@ -655,6 +692,9 @@ impl Guest for Component {
             "tokenHash": card.get("tokenHash").and_then(|v| v.as_str()).unwrap_or(""),
             "redemptionUrl": redemption_url,
             "design": design,
+            "feeMode": card.get("feeMode").and_then(|v| v.as_str()).unwrap_or("default"),
+            "feePercent": card.get("feePercent").and_then(|v| v.as_str()).and_then(|s| s.parse::<f64>().ok()).unwrap_or(0.0),
+            "feeSats": card.get("feeSats").and_then(|v| v.as_u64()).unwrap_or(0),
         }))
     }
 
@@ -780,8 +820,10 @@ impl Guest for Component {
         };
 
         let base_url = req
-            .get("baseUrl")
+            .get("__baseUrl")
             .and_then(|b| b.as_str())
+            .filter(|b| !b.is_empty())
+            .or_else(|| req.get("baseUrl").and_then(|b| b.as_str()))
             .unwrap_or("")
             .to_string();
 
@@ -802,6 +844,9 @@ impl Guest for Component {
                     "senderName": row.get("senderName").and_then(|v| v.as_str()).unwrap_or(""),
                     "message": row.get("message").and_then(|v| v.as_str()).unwrap_or(""),
                     "recipientEmail": row.get("recipientEmail").and_then(|v| v.as_str()).unwrap_or(""),
+                    "feeMode": req.get("feeMode").and_then(|v| v.as_str()).unwrap_or("default"),
+                    "feePercent": req.get("feePercent").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                    "feeSats": req.get("feeSats").and_then(|v| v.as_u64()).unwrap_or(0),
                 });
                 if let Some(design) = req.get("design") {
                     if !design.is_null() {
@@ -832,6 +877,9 @@ impl Guest for Component {
                 "recipientEmail": req.get("recipientEmail").and_then(|v| v.as_str()).unwrap_or(""),
                 "expiresAt": req.get("expiresAt").and_then(|v| v.as_str()).unwrap_or(""),
                 "design": req.get("design"),
+                "feeMode": req.get("feeMode").and_then(|v| v.as_str()).unwrap_or("default"),
+                "feePercent": req.get("feePercent").and_then(|v| v.as_f64()).unwrap_or(0.0),
+                "feeSats": req.get("feeSats").and_then(|v| v.as_u64()).unwrap_or(0),
             });
 
             for _ in 0..count {
@@ -1049,17 +1097,22 @@ impl Guest for Component {
         }
 
         let amount = card.get("amount").and_then(|v| v.as_u64()).unwrap_or(0);
-        let base_url = card.get("baseUrl").and_then(|v| v.as_str()).unwrap_or("");
+        // Prefer the public base URL injected by the host (from X-Forwarded-*
+        // headers) so the callback URL is reachable by external wallets.
+        // Fall back to the stored baseUrl for backward compatibility.
+        let base_url = req
+            .get("__baseUrl")
+            .and_then(|b| b.as_str())
+            .filter(|b| !b.is_empty())
+            .or_else(|| card.get("baseUrl").and_then(|v| v.as_str()))
+            .unwrap_or("");
         let card_id = card.get("cardId").and_then(|v| v.as_str()).unwrap_or("");
 
         let callback_url = format!("{}/api/v1/ext/giftcards_wasm/lnurl/callback", base_url);
-        // Encode the callback URL into a bech32 LNURL string (uppercase, HRP "LNURL").
-        let lnurl = lnurl_encode(&callback_url);
 
         ok(json!({
             "tag": "withdrawRequest",
             "callback": callback_url,
-            "lnurl": lnurl,
             "k1": token_hash,
             "defaultDescription": format!("Gift card {}", &card_id[..card_id.len().min(8)]),
             "minWithdrawable": amount * 1000,
@@ -1122,7 +1175,30 @@ impl Guest for Component {
         let wallet_id = card.get("walletId").and_then(|v| v.as_str()).unwrap_or("").to_string();
         let amount = card.get("amount").and_then(|v| v.as_u64()).unwrap_or(0);
 
-        let pay_result = h_pay_invoice(&wallet_id, pr, amount);
+        // Compute per-card fee reserve (if set)
+        let fee_mode = card.get("feeMode").and_then(|v| v.as_str()).unwrap_or("default");
+        let fee_reserve_msat: Option<u64> = if fee_mode == "percentage" {
+            let fee_percent = card.get("feePercent")
+                .and_then(|v| v.as_str())
+                .and_then(|s| s.parse::<f64>().ok())
+                .unwrap_or(0.0);
+            if fee_percent > 0.0 {
+                Some((amount as f64 * 1000.0 * fee_percent / 100.0) as u64)
+            } else {
+                None
+            }
+        } else if fee_mode == "manual" {
+            let fee_sats = card.get("feeSats").and_then(|v| v.as_u64()).unwrap_or(0);
+            if fee_sats > 0 {
+                Some(fee_sats * 1000)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        let pay_result = h_pay_invoice_with_fee(&wallet_id, pr, amount, fee_reserve_msat);
 
         let success = pay_result.get("success").and_then(|s| s.as_bool()).unwrap_or(false);
         let pending = pay_result.get("pending").and_then(|p| p.as_bool()).unwrap_or(false);

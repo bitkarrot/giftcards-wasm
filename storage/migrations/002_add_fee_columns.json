@@ -1,0 +1,25 @@
+{
+    "operations": [
+        {
+            "op": "add_field",
+            "table": "cards",
+            "field": "feeMode",
+            "type": "string",
+            "default": "default"
+        },
+        {
+            "op": "add_field",
+            "table": "cards",
+            "field": "feePercent",
+            "type": "string",
+            "default": "0"
+        },
+        {
+            "op": "add_field",
+            "table": "cards",
+            "field": "feeSats",
+            "type": "integer",
+            "default": 0
+        }
+    ]
+}

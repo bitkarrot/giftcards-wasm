@@ -34,7 +34,10 @@
             sender_name: '',
             message: '',
             expires_at: null,
-            designMode: 'none'
+            designMode: 'none',
+            fee_mode: 'default',
+            fee_percent: null,
+            fee_sats: null
           },
           result: null
         },
@@ -101,10 +104,16 @@
             sender_name: '',
             message: '',
             expires_at: null,
-            designMode: 'none'
+            designMode: 'none',
+            fee_mode: 'default',
+            fee_percent: null,
+            fee_sats: null
           },
           csvData: {
-            designMode: 'none'
+            designMode: 'none',
+            fee_mode: 'default',
+            fee_percent: null,
+            fee_sats: null
           },
           csvFile: null,
           csvRows: [],
@@ -184,6 +193,13 @@
             label: 'Status',
             field: 'status',
             sortable: true
+          },
+          {
+            name: 'fee',
+            align: 'left',
+            label: 'Fee',
+            field: row => this.formatFeeLabel(row),
+            sortable: false
           },
           {
             name: 'delivery',
@@ -438,7 +454,10 @@
           sender_name: '',
           message: '',
           expires_at: null,
-          designMode: 'none'
+          designMode: 'none',
+          fee_mode: 'default',
+          fee_percent: null,
+          fee_sats: null
         };
         this.createDialog.result = null;
         if (this.templateAssetId && this.templateAssetStaged) {
@@ -481,7 +500,10 @@
             message: d.message || '',
             expiresAt: d.expires_at || null,
             baseUrl: window.location.origin,
-            design: designMode === 'shared' ? this.buildDesignConfig() : null
+            design: designMode === 'shared' ? this.buildDesignConfig() : null,
+            feeMode: d.fee_mode || 'default',
+            feePercent: d.fee_percent || 0,
+            feeSats: d.fee_sats || 0
           };
           var data = await this.apiCall('POST', '/cards', payload);
           this.createDialog.result = data;
@@ -522,6 +544,17 @@
         }
         if (isNaN(date.getTime())) return dateString;
         return date.toLocaleDateString();
+      },
+
+      formatFeeLabel(card) {
+        var mode = card.feeMode || 'default';
+        if (mode === 'percentage') {
+          return card.feePercent != null ? card.feePercent + '%' : '—';
+        }
+        if (mode === 'manual') {
+          return card.feeSats != null ? card.feeSats + ' sats' : '—';
+        }
+        return 'Default';
       },
 
       getStatusColor(status) {
@@ -1025,13 +1058,16 @@
           sender_name: '',
           message: '',
           expires_at: null,
-          designMode: 'none'
+          designMode: 'none',
+          fee_mode: 'default',
+          fee_percent: null,
+          fee_sats: null
         };
         this.bulkDialog.csvFile = null;
         this.bulkDialog.csvRows = [];
         this.bulkDialog.csvErrors = 0;
         this.bulkDialog.csvErrorRows = [];
-        this.bulkDialog.csvData = { designMode: 'none' };
+        this.bulkDialog.csvData = { designMode: 'none', fee_mode: 'default', fee_percent: null, fee_sats: null };
         if (this.templateAssetId && this.templateAssetStaged) {
           this.deleteAssetFile(this.templateAssetId);
         }
@@ -1070,7 +1106,10 @@
               rows: this.bulkDialog.csvRows,
               design_mode: this.bulkDialog.csvData.designMode,
               baseUrl: window.location.origin,
-              design: design
+              design: design,
+              feeMode: this.bulkDialog.csvData.fee_mode || 'default',
+              feePercent: this.bulkDialog.csvData.fee_percent || 0,
+              feeSats: this.bulkDialog.csvData.fee_sats || 0
             };
             await this.apiCall('POST', '/cards/bulk', csvPayload);
             this.bulkDialog.show = false;
@@ -1092,7 +1131,10 @@
               message: this.bulkDialog.sameData.message || null,
               expiresAt: this.bulkDialog.sameData.expires_at || null,
               baseUrl: window.location.origin,
-              design: design2
+              design: design2,
+              feeMode: this.bulkDialog.sameData.fee_mode || 'default',
+              feePercent: this.bulkDialog.sameData.fee_percent || 0,
+              feeSats: this.bulkDialog.sameData.fee_sats || 0
             };
             await this.apiCall('POST', '/cards/bulk', samePayload);
             this.bulkDialog.show = false;

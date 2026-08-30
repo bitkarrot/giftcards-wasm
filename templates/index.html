@@ -429,6 +429,49 @@
                 ]"
               ></q-input>
 
+              <!-- Fee Reserve Section -->
+              <q-separator class="q-my-md"></q-separator>
+              <h6 class="text-subtitle1 q-my-none">Redemption Fee</h6>
+              <q-select
+                filled
+                dense
+                emit-value
+                map-options
+                v-model="createDialog.data.fee_mode"
+                :options="[
+                  {label: 'Default (global setting)', value: 'default'},
+                  {label: 'Percentage of amount', value: 'percentage'},
+                  {label: 'Manual (fixed sats)', value: 'manual'}
+                ]"
+                label="Fee Mode"
+                hint="Max routing fee for the redemption Lightning payment."
+                class="q-mb-sm"
+              ></q-select>
+              <q-input
+                v-if="createDialog.data.fee_mode === 'percentage'"
+                filled
+                dense
+                v-model.number="createDialog.data.fee_percent"
+                type="number"
+                label="Fee Percentage (%)"
+                hint="Max routing fee as % of card amount. E.g. 5 = 5% of amount."
+                :rules="[val => val >= 0 || 'Fee percentage must be >= 0']"
+              >
+                <template v-slot:append><span class="text-grey">%</span></template>
+              </q-input>
+              <q-input
+                v-if="createDialog.data.fee_mode === 'manual'"
+                filled
+                dense
+                v-model.number="createDialog.data.fee_sats"
+                type="number"
+                label="Fee (sats)"
+                hint="Fixed max routing fee in sats. Reserved from your wallet on top of the card amount."
+                :rules="[val => val >= 0 || 'Fee must be >= 0 sats']"
+              >
+                <template v-slot:append><span class="text-grey">sats</span></template>
+              </q-input>
+
               <!-- Card Design Section -->
               <q-separator class="q-my-md"></q-separator>
               <h6 class="text-subtitle1 q-my-none">Card Design</h6>
@@ -866,6 +909,45 @@
                       ]"
                     ></q-input>
 
+                    <!-- Fee Reserve -->
+                    <q-select
+                      filled
+                      dense
+                      emit-value
+                      map-options
+                      v-model="bulkDialog.sameData.fee_mode"
+                      :options="[
+                        {label: 'Default (global setting)', value: 'default'},
+                        {label: 'Percentage of amount', value: 'percentage'},
+                        {label: 'Manual (fixed sats)', value: 'manual'}
+                      ]"
+                      label="Redemption Fee Mode"
+                      hint="Max routing fee for redemption. Applied to all cards in this batch."
+                      class="q-mb-sm"
+                    ></q-select>
+                    <q-input
+                      v-if="bulkDialog.sameData.fee_mode === 'percentage'"
+                      filled
+                      dense
+                      v-model.number="bulkDialog.sameData.fee_percent"
+                      type="number"
+                      label="Fee Percentage (%)"
+                      :rules="[val => val >= 0 || 'Must be >= 0']"
+                    >
+                      <template v-slot:append><span class="text-grey">%</span></template>
+                    </q-input>
+                    <q-input
+                      v-if="bulkDialog.sameData.fee_mode === 'manual'"
+                      filled
+                      dense
+                      v-model.number="bulkDialog.sameData.fee_sats"
+                      type="number"
+                      label="Fee (sats)"
+                      :rules="[val => val >= 0 || 'Must be >= 0']"
+                    >
+                      <template v-slot:append><span class="text-grey">sats</span></template>
+                    </q-input>
+
                     <q-separator class="q-my-md"></q-separator>
                     <h6 class="text-subtitle1 q-my-none">Card Design</h6>
                     <q-banner color="info" rounded icon="info" dense class="q-mb-sm">
@@ -1120,6 +1202,44 @@
                       dense
                       emit-value
                       map-options
+                      v-model="bulkDialog.csvData.fee_mode"
+                      :options="[
+                        {label: 'Default (global setting)', value: 'default'},
+                        {label: 'Percentage of amount', value: 'percentage'},
+                        {label: 'Manual (fixed sats)', value: 'manual'}
+                      ]"
+                      label="Redemption Fee Mode"
+                      hint="Applied to all cards in this CSV batch."
+                      class="q-mb-sm"
+                    ></q-select>
+                    <q-input
+                      v-if="bulkDialog.csvData.fee_mode === 'percentage'"
+                      filled
+                      dense
+                      v-model.number="bulkDialog.csvData.fee_percent"
+                      type="number"
+                      label="Fee Percentage (%)"
+                      :rules="[val => val >= 0 || 'Must be >= 0']"
+                    >
+                      <template v-slot:append><span class="text-grey">%</span></template>
+                    </q-input>
+                    <q-input
+                      v-if="bulkDialog.csvData.fee_mode === 'manual'"
+                      filled
+                      dense
+                      v-model.number="bulkDialog.csvData.fee_sats"
+                      type="number"
+                      label="Fee (sats)"
+                      :rules="[val => val >= 0 || 'Must be >= 0']"
+                    >
+                      <template v-slot:append><span class="text-grey">sats</span></template>
+                    </q-input>
+
+                    <q-select
+                      filled
+                      dense
+                      emit-value
+                      map-options
                       v-model="bulkDialog.csvData.designMode"
                       :options="[
                         {label: 'No design (bare QR)', value: 'none'},
@@ -1345,6 +1465,10 @@
                   :color="getDeliveryStatusColor(detailDialog.card.emailStatus || 'not_sent')"
                   :label="getDeliveryStatusText(detailDialog.card.emailStatus || 'not_sent')"
                 ></q-badge>
+              </div>
+              <div class="col-12 col-md-6">
+                <div class="text-caption">Redemption Fee</div>
+                <div class="text-body2">{{ formatFeeLabel(detailDialog.card) }}</div>
               </div>
             </div>
 

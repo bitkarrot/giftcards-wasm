@@ -73,12 +73,6 @@
             "auth": "user"
         },
         {
-            "method": "DELETE",
-            "path": "/cards/{cardId}",
-            "export": "delete-card",
-            "auth": "user"
-        },
-        {
             "method": "POST",
             "path": "/cards/bulk",
             "export": "bulk-create",
@@ -88,6 +82,12 @@
             "method": "DELETE",
             "path": "/cards/bulk",
             "export": "bulk-delete",
+            "auth": "user"
+        },
+        {
+            "method": "DELETE",
+            "path": "/cards/{cardId}",
+            "export": "delete-card",
             "auth": "user"
         },
         {
@@ -136,7 +136,7 @@
     },
     "permissions": [
         {"id": "ext.storage.read", "description": "Read gift card storage"},
-        {"id": "ext.storage.read_public", "description": "Read public gift card data", "policies": [{"table_name": "cards", "public_fields": ["id", "cardId", "amount", "status", "recipientName", "senderName", "message", "recipientEmail", "emailStatus", "createdAt", "expiresAt", "redeemedAt", "expiredAt", "baseUrl", "designJson", "walletId", "tokenHash", "rawToken"], "source_id_field": "id"}, {"table_name": "magic_links", "public_fields": ["id", "email", "createdAt", "expiresAt", "usedAt"], "source_id_field": "id"}]},
+        {"id": "ext.storage.read_public", "description": "Read public gift card data", "policies": [{"table_name": "cards", "public_fields": ["id", "cardId", "amount", "status", "recipientName", "senderName", "message", "recipientEmail", "emailStatus", "createdAt", "expiresAt", "redeemedAt", "expiredAt", "baseUrl", "designJson", "walletId", "tokenHash", "rawToken", "feeMode", "feePercent", "feeSats"], "source_id_field": "id"}, {"table_name": "magic_links", "public_fields": ["id", "email", "createdAt", "expiresAt", "usedAt"], "source_id_field": "id"}]},
         {"id": "ext.storage.write", "description": "Write gift card storage"},
         {"id": "ext.storage.append_public", "description": "Append public gift card data", "policies": [{"table": "magic_links", "source_table": "cards", "source_id_field": "tokenHash", "allowed_fields": ["email", "createdAt", "expiresAt", "usedAt"], "max_rows_per_source": 100}]},
         {"id": "wallet.balance.read", "description": "Read wallet balance"},

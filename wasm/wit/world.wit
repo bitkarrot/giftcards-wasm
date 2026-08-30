@@ -65,6 +65,7 @@ interface host {
         payment-request: string,
         max-sat: option<u64>,
         description: string,
+        fee-reserve-msat: option<u64>,
     }
     record pay-invoice-response {
         ok: bool,

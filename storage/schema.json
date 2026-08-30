@@ -24,7 +24,10 @@
                 {"name": "templateName", "type": "string", "default": ""},
                 {"name": "templateAssetId", "type": "string", "default": ""},
                 {"name": "qrConfig", "type": "string", "default": ""},
-                {"name": "textConfig", "type": "string", "default": ""}
+                {"name": "textConfig", "type": "string", "default": ""},
+                {"name": "feeMode", "type": "string", "default": "default"},
+                {"name": "feePercent", "type": "string", "default": "0"},
+                {"name": "feeSats", "type": "integer", "default": 0}
             ]
         },
         "magic_links": {
