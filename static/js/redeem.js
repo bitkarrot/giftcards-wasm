@@ -335,13 +335,25 @@
       async loadGiftCard() {
         this.loading = true;
         try {
-          // Get raw token from URL path: /ext/giftcards_wasm/redeem/{token}
-          var pathParts = window.location.pathname.split('/');
-          var rawToken = '';
-          for (var i = 0; i < pathParts.length; i++) {
-            if (pathParts[i] === 'redeem' && i + 1 < pathParts.length) {
-              rawToken = pathParts[i + 1];
-              break;
+          // Connect to the bridge first (required for getRouteParams)
+          await window.LNbitsBridge.connect();
+
+          // Get raw token from route params (provided by the bridge)
+          // The redeem page runs inside an iframe, so window.location.pathname
+          // is the frame URL, not the redeem URL. Route params are the
+          // reliable way to get the {token} from the URL path.
+          var routeParams = await window.LNbitsBridge.getRouteParams();
+          var rawToken = routeParams.token || '';
+
+          // Fallback: try extracting from window.location.pathname
+          // (works when the page is accessed directly, not in an iframe)
+          if (!rawToken) {
+            var pathParts = window.location.pathname.split('/');
+            for (var i = 0; i < pathParts.length; i++) {
+              if (pathParts[i] === 'redeem' && i + 1 < pathParts.length) {
+                rawToken = pathParts[i + 1];
+                break;
+              }
             }
           }
 

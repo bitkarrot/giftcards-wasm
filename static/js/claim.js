@@ -24,14 +24,28 @@
         submitting: false
       };
     },
-    mounted: function () {
+    mounted: async function () {
       // Check if route has :magic_token — if so, verify the magic link
       // URL pattern: /ext/giftcards_wasm/claim/{token}
-      var path = window.location.pathname;
-      var match = path.match(/\/claim\/(.+)$/);
-      if (match && match[1]) {
+      // The claim page runs inside an iframe, so use route params from the bridge.
+      var token = '';
+      try {
+        await window.LNbitsBridge.connect();
+        var routeParams = await window.LNbitsBridge.getRouteParams();
+        token = routeParams.magicToken || routeParams.token || '';
+      } catch (e) {
+        // Fallback: extract from window.location.pathname
+      }
+      if (!token) {
+        var path = window.location.pathname;
+        var match = path.match(/\/claim\/(.+)$/);
+        if (match && match[1]) {
+          token = match[1];
+        }
+      }
+      if (token) {
         this.claimState = 'loading';
-        this.verifyMagicLink(match[1]);
+        this.verifyMagicLink(token);
       }
     },
     methods: {
