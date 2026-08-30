@@ -2,7 +2,7 @@
     "id": "giftcardswasm",
     "name": "Gift Cards (WASM)",
     "short_description": "Create and redeem Lightning gift cards with LNURL-withdraw (WASM port)",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "min_lnbits_version": "1.6.0rc3",
     "tile": "/ext-assets/giftcardswasm/assets/icon.png",
     "tags": ["gift-cards", "lnurl-withdraw", "wasm", "lightning"],
