@@ -174,8 +174,6 @@ world giftcards {
     export get-public-card: func(payload: string) -> string;
     export lnurl-params: func(payload: string) -> string;
     export lnurl-callback: func(payload: string) -> string;
-    export claim-cards: func(payload: string) -> string;
-    export verify-claim: func(payload: string) -> string;
 
     // Event export
     export on-invoice-paid: func(payload: string) -> string;

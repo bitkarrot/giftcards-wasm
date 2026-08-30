@@ -55,11 +55,4 @@ compileTemplate(
   'REDEEM_RENDER_FN'
 );
 
-// Compile claim template
-compileTemplate(
-  path.join(ROOT, 'templates', 'claim.html'),
-  path.join(ROOT, 'static', 'js', 'claim-template.js'),
-  'CLAIM_RENDER_FN'
-);
-
 console.log('All templates compiled successfully.');

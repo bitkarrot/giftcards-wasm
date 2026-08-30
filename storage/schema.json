@@ -29,17 +29,6 @@
                 {"name": "feePercent", "type": "string", "default": "0"},
                 {"name": "feeSats", "type": "integer", "default": 0}
             ]
-        },
-        "magic_links": {
-            "fields": [
-                {"name": "id", "type": "string"},
-                {"name": "tokenHash", "type": "string"},
-                {"name": "email", "type": "string"},
-                {"name": "walletId", "type": "string", "default": ""},
-                {"name": "createdAt", "type": "string"},
-                {"name": "expiresAt", "type": "string"},
-                {"name": "usedAt", "type": "string", "default": ""}
-            ]
         }
     }
 }

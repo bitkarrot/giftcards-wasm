@@ -233,9 +233,7 @@ test('redeem page', async ({ page, request }) => {
   await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '07-redeem-page.png'), fullPage: true });
 });
 
-test('claim page', async ({ page }) => {
-  await page.goto(BASE_URL + '/ext/giftcardswasm/claim', { waitUntil: 'domcontentloaded' }).catch(() => {});
-  await page.waitForTimeout(5000);
-
-  await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '08-claim-page.png'), fullPage: true });
+test('deprecated claim page is unavailable', async ({ request }) => {
+  const response = await request.get(BASE_URL + '/ext/giftcardswasm/claim');
+  expect(response.status()).toBe(404);
 });

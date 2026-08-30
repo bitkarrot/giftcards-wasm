@@ -2,7 +2,7 @@
     "id": "giftcardswasm",
     "name": "Gift Cards (WASM)",
     "short_description": "Create and redeem Lightning gift cards with LNURL-withdraw (WASM port)",
-    "description_md": "https://raw.githubusercontent.com/bitkarrot/giftcardswasm/v0.1.2/description.md",
+    "description_md": "https://raw.githubusercontent.com/bitkarrot/giftcardswasm/v0.1.3/description.md",
     "images": [
         {
             "uri": "https://github.com/bitkarrot/giftcardswasm/raw/main/screenshots/06-card-detail-qr.png"
@@ -16,7 +16,7 @@
         }
     ],
     "license": "MIT",
-    "version": "0.1.2",
+    "version": "0.1.3",
     "min_lnbits_version": "1.6.0rc3",
     "tile": "/ext-assets/giftcardswasm/assets/icon.png",
     "tags": ["gift-cards", "lnurl-withdraw", "wasm", "lightning"],
@@ -35,8 +35,6 @@
             {"name": "get-public-card", "visibility": "public"},
             {"name": "lnurl-params", "visibility": "public"},
             {"name": "lnurl-callback", "visibility": "public"},
-            {"name": "claim-cards", "visibility": "public"},
-            {"name": "verify-claim", "visibility": "public"},
             {"name": "on-invoice-paid", "visibility": "event"}
         ]
     },
@@ -49,16 +47,6 @@
         {
             "path": "/giftcardswasm/redeem/{token}",
             "entrypoint": "templates/redeem.html",
-            "auth": "public"
-        },
-        {
-            "path": "/giftcardswasm/claim",
-            "entrypoint": "templates/claim.html",
-            "auth": "public"
-        },
-        {
-            "path": "/giftcardswasm/claim/{token}",
-            "entrypoint": "templates/claim.html",
             "auth": "public"
         }
     ],
@@ -119,19 +107,6 @@
             "export": "lnurl-params",
             "auth": "public",
             "ownerContext": {"table": "cards", "idParam": "tokenHash"}
-        },
-        {
-            "method": "POST",
-            "path": "/claim",
-            "export": "claim-cards",
-            "auth": "public"
-        },
-        {
-            "method": "GET",
-            "path": "/claim/{magicToken}",
-            "export": "verify-claim",
-            "auth": "public",
-            "ownerContext": {"table": "magic_links", "idParam": "magicToken"}
         }
     ],
     "events": {
@@ -139,9 +114,8 @@
     },
     "permissions": [
         {"id": "ext.storage.read", "description": "Read gift card storage"},
-        {"id": "ext.storage.read_public", "description": "Read public gift card data", "policies": [{"table_name": "cards", "public_fields": ["id", "cardId", "amount", "status", "recipientName", "senderName", "message", "createdAt", "expiresAt", "redeemedAt", "expiredAt", "baseUrl", "designJson", "walletId", "tokenHash", "rawToken", "feeMode", "feePercent", "feeSats"], "source_id_field": "id"}, {"table_name": "magic_links", "public_fields": ["id", "email", "createdAt", "expiresAt", "usedAt"], "source_id_field": "id"}]},
+        {"id": "ext.storage.read_public", "description": "Read public gift card data", "policies": [{"table_name": "cards", "public_fields": ["id", "cardId", "amount", "status", "recipientName", "senderName", "message", "createdAt", "expiresAt", "redeemedAt", "expiredAt", "baseUrl", "designJson", "walletId", "tokenHash", "rawToken", "feeMode", "feePercent", "feeSats"], "source_id_field": "id"}]},
         {"id": "ext.storage.write", "description": "Write gift card storage"},
-        {"id": "ext.storage.append_public", "description": "Append public gift card data", "policies": [{"table": "magic_links", "source_table": "cards", "source_id_field": "tokenHash", "allowed_fields": ["email", "createdAt", "expiresAt", "usedAt"], "max_rows_per_source": 100}]},
         {"id": "wallet.balance.read", "description": "Read wallet balance"},
         {"id": "wallet.create_invoice", "description": "Create invoices"},
         {"id": "wallet.create_invoice_public", "description": "Create public invoices", "policies": [{"table": "cards", "wallet_field": "walletId"}]},

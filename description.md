@@ -6,7 +6,6 @@ Gift Cards (WASM) supports:
 - Custom recipient, sender, message, expiry, and card designs
 - Shareable redemption links and QR codes
 - LNURL-withdraw redemption with compatible Lightning wallets
-- Public claim links for distributing multiple cards
 - Safe retry behavior when a redemption payment fails
 
 Gift card state and wallet operations use the permission-controlled LNbits WASM host APIs, keeping the extension isolated from LNbits core.
