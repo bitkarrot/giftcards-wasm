@@ -2,7 +2,21 @@
     "id": "giftcardswasm",
     "name": "Gift Cards (WASM)",
     "short_description": "Create and redeem Lightning gift cards with LNURL-withdraw (WASM port)",
-    "version": "0.1.1",
+    "description_md": "https://raw.githubusercontent.com/bitkarrot/giftcardswasm/v0.1.2/description.md",
+    "images": [
+        {
+            "uri": "https://github.com/bitkarrot/giftcardswasm/raw/main/screenshots/06-card-detail-qr.png"
+        }
+    ],
+    "contributors": [
+        {
+            "name": "bitkarrot",
+            "uri": "https://github.com/bitkarrot",
+            "role": "Author"
+        }
+    ],
+    "license": "MIT",
+    "version": "0.1.2",
     "min_lnbits_version": "1.6.0rc3",
     "tile": "/ext-assets/giftcardswasm/assets/icon.png",
     "tags": ["gift-cards", "lnurl-withdraw", "wasm", "lightning"],
