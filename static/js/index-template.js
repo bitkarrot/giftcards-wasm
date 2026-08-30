@@ -121,17 +121,6 @@ return function render(_ctx, _cache) {
                           unelevated: "",
                           dense: "",
                           size: "sm",
-                          color: "primary",
-                          icon: "mail",
-                          label: 'Send Emails (' + _ctx.selectedCards.length + ' selected)',
-                          onClick: $event => (_ctx.sendBulkEmails('selected')),
-                          loading: _ctx.bulkEmailLoading,
-                          class: "q-mr-sm"
-                        }, null, 8 /* PROPS */, ["label", "onClick", "loading"]),
-                        _createVNode(_component_q_btn, {
-                          unelevated: "",
-                          dense: "",
-                          size: "sm",
                           icon: "download",
                           color: _ctx.$q.dark.isActive ? 'grey-7' : 'grey-5',
                           label: "Download CSV",
@@ -154,17 +143,6 @@ return function render(_ctx, _cache) {
                         key: 1,
                         class: "col-auto"
                       }, [
-                        _createVNode(_component_q_btn, {
-                          flat: "",
-                          dense: "",
-                          size: "sm",
-                          color: "grey",
-                          icon: "mail",
-                          label: "Send Emails (Filtered)",
-                          onClick: $event => (_ctx.sendBulkEmails('filtered')),
-                          loading: _ctx.bulkEmailLoading,
-                          class: "q-mr-sm"
-                        }, null, 8 /* PROPS */, ["onClick", "loading"]),
                         _createVNode(_component_q_btn, {
                           flat: "",
                           dense: "",
@@ -285,25 +263,12 @@ return function render(_ctx, _cache) {
                                       label: _ctx.getStatusText(col.value)
                                     }, null, 8 /* PROPS */, ["color", "label"])
                                   ]))
-                                : (col.name === 'delivery')
-                                  ? (_openBlock(), _createElementBlock("span", { key: 1 }, [
-                                      (props.row.recipientEmail)
-                                        ? (_openBlock(), _createBlock(_component_q_badge, {
-                                            key: 0,
-                                            color: _ctx.getDeliveryStatusColor(col.value),
-                                            label: _ctx.getDeliveryStatusText(col.value)
-                                          }, null, 8 /* PROPS */, ["color", "label"]))
-                                        : (_openBlock(), _createElementBlock("span", {
-                                            key: 1,
-                                            class: "text-caption text-grey"
-                                          }, "—"))
-                                    ]))
-                                  : (col.name === 'expires_at')
-                                    ? (_openBlock(), _createElementBlock("span", { key: 2 }, _toDisplayString(col.value || 'Never'), 1 /* TEXT */))
-                                    : (_openBlock(), _createElementBlock("span", {
-                                        key: 3,
-                                        textContent: _toDisplayString(col.value)
-                                      }, null, 8 /* PROPS */, ["textContent"]))
+                                : (col.name === 'expires_at')
+                                  ? (_openBlock(), _createElementBlock("span", { key: 1 }, _toDisplayString(col.value || 'Never'), 1 /* TEXT */))
+                                  : (_openBlock(), _createElementBlock("span", {
+                                      key: 2,
+                                      textContent: _toDisplayString(col.value)
+                                    }, null, 8 /* PROPS */, ["textContent"]))
                             ]),
                             _: 2 /* DYNAMIC */
                           }, 1032 /* PROPS, DYNAMIC_SLOTS */, ["props"]))
@@ -318,24 +283,6 @@ return function render(_ctx, _cache) {
                             _createElementVNode("div", { class: "q-pa-md" }, [
                               _createElementVNode("div", { class: "row items-center justify-between q-mb-md" }, [
                                 _createElementVNode("div", { class: "row q-gutter-sm items-center" }, [
-                                  _createVNode(_component_q_btn, {
-                                    round: "",
-                                    flat: "",
-                                    color: "primary",
-                                    icon: "mail",
-                                    onClick: $event => (_ctx.openEmailDialog(props.row)),
-                                    "aria-label": "Send gift card email"
-                                  }, {
-                                    default: _withCtx(() => [
-                                      _createVNode(_component_q_tooltip, null, {
-                                        default: _withCtx(() => [
-                                          _createTextVNode("Send Email")
-                                        ]),
-                                        _: 1 /* STABLE */
-                                      })
-                                    ]),
-                                    _: 1 /* STABLE */
-                                  }, 8 /* PROPS */, ["onClick"]),
                                   _createVNode(_component_q_btn, {
                                     round: "",
                                     flat: "",
@@ -399,6 +346,14 @@ return function render(_ctx, _cache) {
                               ]),
                               _createVNode(_component_q_separator, { class: "q-mb-md" }),
                               _createElementVNode("div", { class: "row q-col-gutter-md" }, [
+                                _createElementVNode("div", { class: "col-6 col-md-3" }, [
+                                  _createElementVNode("div", { class: "text-caption" }, "Amount:"),
+                                  _createElementVNode("div", null, _toDisplayString(props.row.amount) + " sats", 1 /* TEXT */)
+                                ]),
+                                _createElementVNode("div", { class: "col-6 col-md-3" }, [
+                                  _createElementVNode("div", { class: "text-caption" }, "Template:"),
+                                  _createElementVNode("div", null, _toDisplayString(_ctx.getTemplateLabel(props.row.templateName)), 1 /* TEXT */)
+                                ]),
                                 _createElementVNode("div", { class: "col-12 col-md-6" }, [
                                   _createElementVNode("div", { class: "text-caption" }, "From:"),
                                   _createElementVNode("div", null, _toDisplayString(props.row.senderName || 'Anonymous'), 1 /* TEXT */)
@@ -606,6 +561,63 @@ return function render(_ctx, _cache) {
                   val => !val || new Date(val) > new Date() || 'Expiration date must be in the future'
                 ]
                         }, null, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue", "rules"]),
+                        _createCommentVNode(" Fee Reserve Section "),
+                        _createVNode(_component_q_separator, { class: "q-my-md" }),
+                        _createElementVNode("h6", { class: "text-subtitle1 q-my-none" }, "Redemption Fee"),
+                        _createVNode(_component_q_select, {
+                          filled: "",
+                          dense: "",
+                          "emit-value": "",
+                          "map-options": "",
+                          modelValue: _ctx.createDialog.data.fee_mode,
+                          "onUpdate:modelValue": $event => ((_ctx.createDialog.data.fee_mode) = $event),
+                          options: [
+                  {label: 'Default (global setting)', value: 'default'},
+                  {label: 'Percentage of amount', value: 'percentage'},
+                  {label: 'Manual (fixed sats)', value: 'manual'}
+                ],
+                          label: "Fee Mode",
+                          hint: "Max routing fee for the redemption Lightning payment.",
+                          class: "q-mb-sm"
+                        }, null, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue"]),
+                        (_ctx.createDialog.data.fee_mode === 'percentage')
+                          ? (_openBlock(), _createBlock(_component_q_input, {
+                              key: 0,
+                              filled: "",
+                              dense: "",
+                              modelValue: _ctx.createDialog.data.fee_percent,
+                              "onUpdate:modelValue": $event => ((_ctx.createDialog.data.fee_percent) = $event),
+                              modelModifiers: { number: true },
+                              type: "number",
+                              label: "Fee Percentage (%)",
+                              hint: "Max routing fee as % of card amount. E.g. 5 = 5% of amount.",
+                              rules: [val => val >= 0 || 'Fee percentage must be >= 0']
+                            }, {
+                              append: _withCtx(() => [
+                                _createElementVNode("span", { class: "text-grey" }, "%")
+                              ]),
+                              _: 1 /* STABLE */
+                            }, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue", "rules"]))
+                          : _createCommentVNode("v-if", true),
+                        (_ctx.createDialog.data.fee_mode === 'manual')
+                          ? (_openBlock(), _createBlock(_component_q_input, {
+                              key: 1,
+                              filled: "",
+                              dense: "",
+                              modelValue: _ctx.createDialog.data.fee_sats,
+                              "onUpdate:modelValue": $event => ((_ctx.createDialog.data.fee_sats) = $event),
+                              modelModifiers: { number: true },
+                              type: "number",
+                              label: "Fee (sats)",
+                              hint: "Fixed max routing fee in sats. Reserved from your wallet on top of the card amount.",
+                              rules: [val => val >= 0 || 'Fee must be >= 0 sats']
+                            }, {
+                              append: _withCtx(() => [
+                                _createElementVNode("span", { class: "text-grey" }, "sats")
+                              ]),
+                              _: 1 /* STABLE */
+                            }, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue", "rules"]))
+                          : _createCommentVNode("v-if", true),
                         _createCommentVNode(" Card Design Section "),
                         _createVNode(_component_q_separator, { class: "q-my-md" }),
                         _createElementVNode("h6", { class: "text-subtitle1 q-my-none" }, "Card Design"),
@@ -624,7 +636,7 @@ return function render(_ctx, _cache) {
                           class: "q-mb-sm"
                         }, null, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue"]),
                         (_ctx.createDialog.data.designMode === 'shared')
-                          ? (_openBlock(), _createElementBlock("div", { key: 0 }, [
+                          ? (_openBlock(), _createElementBlock("div", { key: 2 }, [
                               _createVNode(_component_q_banner, {
                                 color: "info",
                                 rounded: "",
@@ -907,150 +919,6 @@ return function render(_ctx, _cache) {
         style: {"display":"none"},
         onChange: _ctx.handleTemplateSelected
       }, null, 40 /* PROPS, NEED_HYDRATION */, ["onChange"]),
-      _createCommentVNode(" Email Delivery Dialog "),
-      _createVNode(_component_q_dialog, {
-        modelValue: _ctx.emailDialog.show,
-        "onUpdate:modelValue": $event => ((_ctx.emailDialog.show) = $event),
-        position: "top"
-      }, {
-        default: _withCtx(() => [
-          _createVNode(_component_q_card, { class: "q-pa-lg q-pt-xl lnbits__dialog-card" }, {
-            default: _withCtx(() => [
-              _createVNode(_component_q_form, { onSubmit: _ctx.sendEmail }, {
-                default: _withCtx(() => [
-                  _createElementVNode("div", { class: "q-gutter-md" }, [
-                    _createElementVNode("h6", { class: "text-subtitle1 q-my-none" }, "Send Gift Card Email"),
-                    _createVNode(_component_q_input, {
-                      filled: "",
-                      dense: "",
-                      modelValue: _ctx.emailDialog.data.recipient_email,
-                      "onUpdate:modelValue": $event => ((_ctx.emailDialog.data.recipient_email) = $event),
-                      modelModifiers: { trim: true },
-                      type: "email",
-                      label: "Recipient Email",
-                      rules: [val => !!val && _ctx.isValidEmail(val) || 'Enter a valid email address']
-                    }, null, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue", "rules"]),
-                    _createVNode(_component_q_select, {
-                      filled: "",
-                      dense: "",
-                      "emit-value": "",
-                      "map-options": "",
-                      modelValue: _ctx.emailDialog.data.email_mode,
-                      "onUpdate:modelValue": $event => ((_ctx.emailDialog.data.email_mode) = $event),
-                      options: _ctx.emailModeOptions,
-                      label: "Email Mode"
-                    }, null, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue", "options"]),
-                    _createVNode(_component_q_input, {
-                      filled: "",
-                      dense: "",
-                      modelValue: _ctx.emailDialog.data.subject,
-                      "onUpdate:modelValue": $event => ((_ctx.emailDialog.data.subject) = $event),
-                      modelModifiers: { trim: true },
-                      type: "text",
-                      label: "Subject",
-                      hint: "Defaults to 'You have a gift card from {sender}'."
-                    }, null, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue"]),
-                    (_ctx.emailDialog.data.email_mode === 'custom')
-                      ? (_openBlock(), _createElementBlock("div", { key: 0 }, [
-                          _createVNode(_component_q_input, {
-                            filled: "",
-                            dense: "",
-                            modelValue: _ctx.emailDialog.data.body,
-                            "onUpdate:modelValue": $event => ((_ctx.emailDialog.data.body) = $event),
-                            modelModifiers: { trim: true },
-                            type: "textarea",
-                            label: "Email Body",
-                            hint: "Write your personal message to the recipient."
-                          }, null, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue"])
-                        ]))
-                      : _createCommentVNode("v-if", true),
-                    (_ctx.emailDialog.data.email_mode === 'fancy')
-                      ? (_openBlock(), _createBlock(_component_q_input, {
-                          key: 1,
-                          filled: "",
-                          dense: "",
-                          class: "color-picker",
-                          modelValue: _ctx.emailDialog.data.bg_color,
-                          "onUpdate:modelValue": $event => ((_ctx.emailDialog.data.bg_color) = $event),
-                          type: "color",
-                          label: "Background Color"
-                        }, null, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue"]))
-                      : _createCommentVNode("v-if", true),
-                    _createVNode(_component_q_separator, { class: "q-my-md" }),
-                    _createElementVNode("div", { class: "text-caption" }, "Preview:"),
-                    _createVNode(_component_q_card, { class: "q-pa-md bg-grey-2" }, {
-                      default: _withCtx(() => [
-                        _createElementVNode("div", { class: "text-caption text-grey-7" }, " Subject: " + _toDisplayString(_ctx.emailDialog.data.subject || 'You have a gift card from ' + (_ctx.emailDialog.card ? (_ctx.emailDialog.card.senderName || 'Anonymous') : 'Anonymous')), 1 /* TEXT */),
-                        (_ctx.emailDialog.data.email_mode === 'custom')
-                          ? (_openBlock(), _createElementBlock("div", {
-                              key: 0,
-                              class: "text-body2 q-mt-sm"
-                            }, _toDisplayString(_ctx.emailDialog.data.body || '(email body preview)'), 1 /* TEXT */))
-                          : (_openBlock(), _createElementBlock("div", {
-                              key: 1,
-                              class: "q-mt-sm"
-                            }, [
-                              _createElementVNode("div", { style: {"background":"#ffffff","border-radius":"8px","overflow":"hidden","box-shadow":"0 1px 4px rgba(0,0,0,0.1)"} }, [
-                                _createElementVNode("div", {
-                                  style: _normalizeStyle({background: _ctx.emailDialog.data.bg_color, padding: '16px', textAlign: 'center'})
-                                }, [
-                                  _createElementVNode("div", { style: {"color":"#ffffff","font-size":"22px","font-weight":"bold"} }, _toDisplayString(_ctx.emailDialog.card ? _ctx.emailDialog.card.amount : 0) + " sats ", 1 /* TEXT */),
-                                  _createElementVNode("div", { style: {"color":"rgba(255,255,255,0.7)","font-size":"12px","margin-top":"4px"} }, " Bitcoin Lightning Gift Card ")
-                                ], 4 /* STYLE */),
-                                _createElementVNode("div", { style: {"padding":"16px"} }, [
-                                  _createElementVNode("div", { style: {"color":"#333","font-size":"14px","margin-bottom":"12px"} }, [
-                                    _createElementVNode("strong", null, "From:"),
-                                    _createTextVNode(" " + _toDisplayString(_ctx.emailDialog.card ? (_ctx.emailDialog.card.senderName || 'Anonymous') : 'Anonymous'), 1 /* TEXT */)
-                                  ]),
-                                  (_ctx.emailDialog.card && _ctx.emailDialog.card.message)
-                                    ? (_openBlock(), _createElementBlock("div", {
-                                        key: 0,
-                                        style: _normalizeStyle({background: '#f5f5f5', borderLeft: '4px solid ' + _ctx.emailDialog.data.bg_color, padding: '12px', marginBottom: '12px'})
-                                      }, [
-                                        _createElementVNode("div", { style: {"color":"#555","font-size":"13px"} }, _toDisplayString(_ctx.emailDialog.card.message), 1 /* TEXT */)
-                                      ], 4 /* STYLE */))
-                                    : _createCommentVNode("v-if", true),
-                                  _createElementVNode("div", { style: {"text-align":"center","margin":"16px 0"} }, [
-                                    _createElementVNode("span", {
-                                      style: _normalizeStyle({display: 'inline-block', background: _ctx.emailDialog.data.bg_color, color: '#ffffff', padding: '10px 28px', borderRadius: '6px', fontSize: '14px', fontWeight: '600'})
-                                    }, " Claim Your Gift Card ", 4 /* STYLE */)
-                                  ])
-                                ])
-                              ])
-                            ]))
-                      ]),
-                      _: 1 /* STABLE */
-                    }),
-                    _createElementVNode("div", { class: "row q-mt-lg" }, [
-                      _createVNode(_component_q_btn, {
-                        unelevated: "",
-                        color: "primary",
-                        type: "button",
-                        onClick: _withModifiers(_ctx.sendEmail, ["prevent"]),
-                        label: "Send Email",
-                        loading: _ctx.emailDialog.loading
-                      }, null, 8 /* PROPS */, ["onClick", "loading"]),
-                      _withDirectives(_createVNode(_component_q_btn, {
-                        flat: "",
-                        dense: "",
-                        round: "",
-                        icon: "close",
-                        class: "q-ml-auto",
-                        "aria-label": "Close email dialog"
-                      }, null, 512 /* NEED_PATCH */), [
-                        [_directive_close_popup]
-                      ])
-                    ])
-                  ])
-                ]),
-                _: 1 /* STABLE */
-              }, 8 /* PROPS */, ["onSubmit"])
-            ]),
-            _: 1 /* STABLE */
-          })
-        ]),
-        _: 1 /* STABLE */
-      }, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue"]),
       _createCommentVNode(" Bulk Create Dialog "),
       _createVNode(_component_q_dialog, {
         modelValue: _ctx.bulkDialog.show,
@@ -1162,6 +1030,59 @@ return function render(_ctx, _cache) {
                         val => !val || new Date(val) > new Date() || 'Expiration date must be in the future'
                       ]
                               }, null, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue", "rules"]),
+                              _createCommentVNode(" Fee Reserve "),
+                              _createVNode(_component_q_select, {
+                                filled: "",
+                                dense: "",
+                                "emit-value": "",
+                                "map-options": "",
+                                modelValue: _ctx.bulkDialog.sameData.fee_mode,
+                                "onUpdate:modelValue": $event => ((_ctx.bulkDialog.sameData.fee_mode) = $event),
+                                options: [
+                        {label: 'Default (global setting)', value: 'default'},
+                        {label: 'Percentage of amount', value: 'percentage'},
+                        {label: 'Manual (fixed sats)', value: 'manual'}
+                      ],
+                                label: "Redemption Fee Mode",
+                                hint: "Max routing fee for redemption. Applied to all cards in this batch.",
+                                class: "q-mb-sm"
+                              }, null, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue"]),
+                              (_ctx.bulkDialog.sameData.fee_mode === 'percentage')
+                                ? (_openBlock(), _createBlock(_component_q_input, {
+                                    key: 0,
+                                    filled: "",
+                                    dense: "",
+                                    modelValue: _ctx.bulkDialog.sameData.fee_percent,
+                                    "onUpdate:modelValue": $event => ((_ctx.bulkDialog.sameData.fee_percent) = $event),
+                                    modelModifiers: { number: true },
+                                    type: "number",
+                                    label: "Fee Percentage (%)",
+                                    rules: [val => val >= 0 || 'Must be >= 0']
+                                  }, {
+                                    append: _withCtx(() => [
+                                      _createElementVNode("span", { class: "text-grey" }, "%")
+                                    ]),
+                                    _: 1 /* STABLE */
+                                  }, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue", "rules"]))
+                                : _createCommentVNode("v-if", true),
+                              (_ctx.bulkDialog.sameData.fee_mode === 'manual')
+                                ? (_openBlock(), _createBlock(_component_q_input, {
+                                    key: 1,
+                                    filled: "",
+                                    dense: "",
+                                    modelValue: _ctx.bulkDialog.sameData.fee_sats,
+                                    "onUpdate:modelValue": $event => ((_ctx.bulkDialog.sameData.fee_sats) = $event),
+                                    modelModifiers: { number: true },
+                                    type: "number",
+                                    label: "Fee (sats)",
+                                    rules: [val => val >= 0 || 'Must be >= 0']
+                                  }, {
+                                    append: _withCtx(() => [
+                                      _createElementVNode("span", { class: "text-grey" }, "sats")
+                                    ]),
+                                    _: 1 /* STABLE */
+                                  }, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue", "rules"]))
+                                : _createCommentVNode("v-if", true),
                               _createVNode(_component_q_separator, { class: "q-my-md" }),
                               _createElementVNode("h6", { class: "text-subtitle1 q-my-none" }, "Card Design"),
                               _createVNode(_component_q_banner, {
@@ -1190,7 +1111,7 @@ return function render(_ctx, _cache) {
                                 label: "Design Mode"
                               }, null, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue"]),
                               (_ctx.bulkDialog.sameData.designMode === 'shared')
-                                ? (_openBlock(), _createElementBlock("div", { key: 0 }, [
+                                ? (_openBlock(), _createElementBlock("div", { key: 2 }, [
                                     _createElementVNode("div", { class: "row q-col-gutter-md" }, [
                                       _createElementVNode("div", { class: "col-12" }, [
                                         _createVNode(_component_q_select, {
@@ -1376,7 +1297,7 @@ return function render(_ctx, _cache) {
                                 : _createCommentVNode("v-if", true),
                               (_ctx.bulkTotalExceedsBalance)
                                 ? (_openBlock(), _createBlock(_component_q_banner, {
-                                    key: 1,
+                                    key: 3,
                                     class: "q-mt-md",
                                     color: "warning",
                                     icon: "warning"
@@ -1413,7 +1334,7 @@ return function render(_ctx, _cache) {
                                 label: "Download Template",
                                 onClick: _ctx.downloadCsvTemplate
                               }, null, 8 /* PROPS */, ["onClick"]),
-                              _createElementVNode("div", { class: "text-caption text-grey" }, " Required: recipient_name, amount_sats. Optional: recipient_email, nostr_npub, sender_name, message. "),
+                              _createElementVNode("div", { class: "text-caption text-grey" }, " Required: recipient_name, amount_sats. Optional: nostr_npub, sender_name, message. "),
                               (_ctx.bulkDialog.csvRows.length > 0 || _ctx.bulkDialog.csvErrors > 0)
                                 ? (_openBlock(), _createElementBlock("div", { key: 0 }, [
                                     (_ctx.bulkDialog.csvErrors === 0)
@@ -1494,15 +1415,6 @@ return function render(_ctx, _cache) {
                                               _: 2 /* DYNAMIC */
                                             }, 1032 /* PROPS, DYNAMIC_SLOTS */, ["props"]),
                                             _createVNode(_component_q_td, {
-                                              key: "recipient_email",
-                                              props: props
-                                            }, {
-                                              default: _withCtx(() => [
-                                                _createTextVNode(_toDisplayString(props.row.recipientEmail || '—'), 1 /* TEXT */)
-                                              ]),
-                                              _: 2 /* DYNAMIC */
-                                            }, 1032 /* PROPS, DYNAMIC_SLOTS */, ["props"]),
-                                            _createVNode(_component_q_td, {
                                               key: "nostr_npub",
                                               props: props
                                             }, {
@@ -1565,6 +1477,58 @@ return function render(_ctx, _cache) {
                                 dense: "",
                                 "emit-value": "",
                                 "map-options": "",
+                                modelValue: _ctx.bulkDialog.csvData.fee_mode,
+                                "onUpdate:modelValue": $event => ((_ctx.bulkDialog.csvData.fee_mode) = $event),
+                                options: [
+                        {label: 'Default (global setting)', value: 'default'},
+                        {label: 'Percentage of amount', value: 'percentage'},
+                        {label: 'Manual (fixed sats)', value: 'manual'}
+                      ],
+                                label: "Redemption Fee Mode",
+                                hint: "Applied to all cards in this CSV batch.",
+                                class: "q-mb-sm"
+                              }, null, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue"]),
+                              (_ctx.bulkDialog.csvData.fee_mode === 'percentage')
+                                ? (_openBlock(), _createBlock(_component_q_input, {
+                                    key: 2,
+                                    filled: "",
+                                    dense: "",
+                                    modelValue: _ctx.bulkDialog.csvData.fee_percent,
+                                    "onUpdate:modelValue": $event => ((_ctx.bulkDialog.csvData.fee_percent) = $event),
+                                    modelModifiers: { number: true },
+                                    type: "number",
+                                    label: "Fee Percentage (%)",
+                                    rules: [val => val >= 0 || 'Must be >= 0']
+                                  }, {
+                                    append: _withCtx(() => [
+                                      _createElementVNode("span", { class: "text-grey" }, "%")
+                                    ]),
+                                    _: 1 /* STABLE */
+                                  }, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue", "rules"]))
+                                : _createCommentVNode("v-if", true),
+                              (_ctx.bulkDialog.csvData.fee_mode === 'manual')
+                                ? (_openBlock(), _createBlock(_component_q_input, {
+                                    key: 3,
+                                    filled: "",
+                                    dense: "",
+                                    modelValue: _ctx.bulkDialog.csvData.fee_sats,
+                                    "onUpdate:modelValue": $event => ((_ctx.bulkDialog.csvData.fee_sats) = $event),
+                                    modelModifiers: { number: true },
+                                    type: "number",
+                                    label: "Fee (sats)",
+                                    rules: [val => val >= 0 || 'Must be >= 0']
+                                  }, {
+                                    append: _withCtx(() => [
+                                      _createElementVNode("span", { class: "text-grey" }, "sats")
+                                    ]),
+                                    _: 1 /* STABLE */
+                                  }, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue", "rules"]))
+                                : _createCommentVNode("v-if", true),
+                              _createVNode(_component_q_select, {
+                                filled: "",
+                                dense: "",
+                                "emit-value": "",
+                                "map-options": "",
                                 modelValue: _ctx.bulkDialog.csvData.designMode,
                                 "onUpdate:modelValue": $event => ((_ctx.bulkDialog.csvData.designMode) = $event),
                                 options: [
@@ -1575,7 +1539,7 @@ return function render(_ctx, _cache) {
                                 label: "Design Mode"
                               }, null, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue"]),
                               (_ctx.bulkDialog.csvData.designMode === 'shared')
-                                ? (_openBlock(), _createElementBlock("div", { key: 2 }, [
+                                ? (_openBlock(), _createElementBlock("div", { key: 4 }, [
                                     _createElementVNode("div", { class: "row q-col-gutter-md" }, [
                                       _createElementVNode("div", { class: "col-12" }, [
                                         _createVNode(_component_q_select, {
@@ -1760,7 +1724,7 @@ return function render(_ctx, _cache) {
                                   ]))
                                 : _createCommentVNode("v-if", true),
                               (_ctx.bulkDialog.csvData.designMode === 'per_row')
-                                ? (_openBlock(), _createElementBlock("div", { key: 3 }, [
+                                ? (_openBlock(), _createElementBlock("div", { key: 5 }, [
                                     _createVNode(_component_q_banner, {
                                       color: "info",
                                       rounded: "",
@@ -1848,10 +1812,6 @@ return function render(_ctx, _cache) {
                         _createElementVNode("div", { class: "text-caption" }, "Sender"),
                         _createElementVNode("div", { class: "text-body2" }, _toDisplayString(_ctx.detailDialog.card.senderName || 'Anonymous'), 1 /* TEXT */)
                       ]),
-                      _createElementVNode("div", { class: "col-12 col-md-6" }, [
-                        _createElementVNode("div", { class: "text-caption" }, "Email"),
-                        _createElementVNode("div", { class: "text-body2" }, _toDisplayString(_ctx.detailDialog.card.recipientEmail || '—'), 1 /* TEXT */)
-                      ]),
                       _createElementVNode("div", { class: "col-12" }, [
                         _createElementVNode("div", { class: "text-caption" }, "Message"),
                         _createElementVNode("div", { class: "text-body2" }, _toDisplayString(_ctx.detailDialog.card.message || 'No message'), 1 /* TEXT */)
@@ -1869,11 +1829,8 @@ return function render(_ctx, _cache) {
                         _createElementVNode("div", { class: "text-body2" }, _toDisplayString(_ctx.detailDialog.card.redeemedAt ? _ctx.formatDate(_ctx.detailDialog.card.redeemedAt) : '—'), 1 /* TEXT */)
                       ]),
                       _createElementVNode("div", { class: "col-12 col-md-6" }, [
-                        _createElementVNode("div", { class: "text-caption" }, "Delivery Status"),
-                        _createVNode(_component_q_badge, {
-                          color: _ctx.getDeliveryStatusColor(_ctx.detailDialog.card.emailStatus || 'not_sent'),
-                          label: _ctx.getDeliveryStatusText(_ctx.detailDialog.card.emailStatus || 'not_sent')
-                        }, null, 8 /* PROPS */, ["color", "label"])
+                        _createElementVNode("div", { class: "text-caption" }, "Redemption Fee"),
+                        _createElementVNode("div", { class: "text-body2" }, _toDisplayString(_ctx.formatFeeLabel(_ctx.detailDialog.card)), 1 /* TEXT */)
                       ])
                     ]),
                     _createVNode(_component_q_separator, { class: "q-my-md" }),
@@ -1985,16 +1942,6 @@ return function render(_ctx, _cache) {
                           type: "textarea",
                           label: "Personal Message"
                         }, null, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue"]),
-                        _createVNode(_component_q_input, {
-                          filled: "",
-                          dense: "",
-                          modelValue: _ctx.editDialog.data.recipient_email,
-                          "onUpdate:modelValue": $event => ((_ctx.editDialog.data.recipient_email) = $event),
-                          modelModifiers: { trim: true },
-                          type: "email",
-                          label: "Recipient Email",
-                          rules: [val => !val || _ctx.isValidEmail(val) || 'Enter a valid email address']
-                        }, null, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue", "rules"]),
                         _createCommentVNode(" Card Design Section "),
                         _createVNode(_component_q_separator, { class: "q-my-md" }),
                         _createElementVNode("h6", { class: "text-subtitle1 q-my-none" }, "Card Design"),
@@ -2375,121 +2322,6 @@ return function render(_ctx, _cache) {
                     color: "grey",
                     class: "q-ml-auto",
                     label: "Cancel"
-                  }, null, 512 /* NEED_PATCH */), [
-                    [_directive_close_popup]
-                  ])
-                ])
-              ])
-            ]),
-            _: 1 /* STABLE */
-          })
-        ]),
-        _: 1 /* STABLE */
-      }, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue"]),
-      _createCommentVNode(" Bulk Email Confirmation Dialog "),
-      _createVNode(_component_q_dialog, {
-        modelValue: _ctx.bulkEmailDialog.show,
-        "onUpdate:modelValue": $event => ((_ctx.bulkEmailDialog.show) = $event),
-        persistent: ""
-      }, {
-        default: _withCtx(() => [
-          _createVNode(_component_q_card, {
-            class: "q-pa-lg",
-            style: {"min-width":"400px","max-width":"600px"}
-          }, {
-            default: _withCtx(() => [
-              _createElementVNode("div", { class: "q-gutter-md" }, [
-                _createElementVNode("div", { class: "text-center" }, [
-                  _createVNode(_component_q_icon, {
-                    name: "mail",
-                    color: _ctx.bulkEmailDialog.cards.length === 0 ? 'grey' : 'primary',
-                    size: "40px"
-                  }, null, 8 /* PROPS */, ["color"])
-                ]),
-                _createElementVNode("h6", { class: "text-subtitle1 q-my-none text-center" }, _toDisplayString(_ctx.bulkEmailDialog.cards.length === 0 ? 'No Emailable Cards' : 'Send Emails?'), 1 /* TEXT */),
-                (_ctx.bulkEmailDialog.cards.length === 0)
-                  ? (_openBlock(), _createElementBlock("div", { key: 0 }, [
-                      _createVNode(_component_q_banner, {
-                        color: "warning",
-                        rounded: "",
-                        icon: "warning",
-                        dense: ""
-                      }, {
-                        default: _withCtx(() => [
-                          _createTextVNode(" No cards with recipient email addresses were found. Add an email address to a card before sending. ")
-                        ]),
-                        _: 1 /* STABLE */
-                      })
-                    ]))
-                  : (_openBlock(), _createElementBlock("div", { key: 1 }, [
-                      (_ctx.bulkEmailDialog.skipped > 0)
-                        ? (_openBlock(), _createElementBlock("p", {
-                            key: 0,
-                            class: "text-body2 text-center"
-                          }, [
-                            _createVNode(_component_q_badge, {
-                              color: "grey-6",
-                              label: _ctx.bulkEmailDialog.skipped + ' skipped (no email)'
-                            }, null, 8 /* PROPS */, ["label"])
-                          ]))
-                        : _createCommentVNode("v-if", true),
-                      _createVNode(_component_q_banner, {
-                        color: "info",
-                        rounded: "",
-                        icon: "info",
-                        dense: ""
-                      }, {
-                        default: _withCtx(() => [
-                          _createTextVNode(" Select which recipients to email, then click Send. ")
-                        ]),
-                        _: 1 /* STABLE */
-                      }),
-                      _createVNode(_component_q_table, {
-                        dense: "",
-                        flat: "",
-                        rows: _ctx.bulkEmailDialog.cards,
-                        "row-key": "id",
-                        selected: _ctx.bulkEmailDialog.selected,
-                        "onUpdate:selected": $event => ((_ctx.bulkEmailDialog.selected) = $event),
-                        selection: "multiple",
-                        columns: [
-                  {name: 'recipient_name', label: 'Recipient', field: 'recipient_name', align: 'left'},
-                  {name: 'recipient_email', label: 'Email', field: 'recipient_email', align: 'left'},
-                  {name: 'amount', label: 'Amount', field: 'amount', align: 'right', format: val => val + ' sats'}
-                ],
-                        "rows-per-page-options": [0],
-                        "hide-pagination": "",
-                        style: {"max-height":"300px","overflow":"auto"}
-                      }, {
-                        "body-cell-recipient_name": _withCtx((props) => [
-                          _createVNode(_component_q_td, { props: props }, {
-                            default: _withCtx(() => [
-                              _createTextVNode(_toDisplayString(props.row.recipientName || '—'), 1 /* TEXT */)
-                            ]),
-                            _: 2 /* DYNAMIC */
-                          }, 1032 /* PROPS, DYNAMIC_SLOTS */, ["props"])
-                        ]),
-                        _: 1 /* STABLE */
-                      }, 8 /* PROPS */, ["rows", "selected", "onUpdate:selected", "columns"])
-                    ])),
-                _createElementVNode("div", { class: "row q-mt-lg" }, [
-                  (_ctx.bulkEmailDialog.cards.length > 0)
-                    ? (_openBlock(), _createBlock(_component_q_btn, {
-                        key: 0,
-                        unelevated: "",
-                        color: "primary",
-                        icon: "send",
-                        label: 'Send ' + (_ctx.bulkEmailDialog.selected ? _ctx.bulkEmailDialog.selected.length : 0) + ' Email' + (_ctx.bulkEmailDialog.selected && _ctx.bulkEmailDialog.selected.length === 1 ? '' : 's'),
-                        loading: _ctx.bulkEmailDialog.loading,
-                        disable: !_ctx.bulkEmailDialog.selected || _ctx.bulkEmailDialog.selected.length === 0,
-                        onClick: _ctx.confirmBulkEmails
-                      }, null, 8 /* PROPS */, ["label", "loading", "disable", "onClick"]))
-                    : _createCommentVNode("v-if", true),
-                  _withDirectives(_createVNode(_component_q_btn, {
-                    flat: "",
-                    color: "grey",
-                    class: "q-ml-auto",
-                    label: "Close"
                   }, null, 512 /* NEED_PATCH */), [
                     [_directive_close_popup]
                   ])

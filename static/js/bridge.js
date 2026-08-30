@@ -130,13 +130,18 @@ window.LNbitsBridge = (function() {
     return sendRequest('navigation.open_new_tab', { url: url });
   }
 
+  // Download a file by opening a data: URL in a new tab via the bridge.
+  // The iframe CSP blocks blob: URLs and the sandbox blocks <a download>,
+  // so we use openInNewTab with a data URI. The user can save from the
+  // opened tab (Ctrl+S or right-click > Save).
   function download(filename, data, mimeType, encoding) {
-    return sendRequest('navigation.download', {
-      filename: filename,
-      data: data,
-      mimeType: mimeType || 'application/octet-stream',
-      encoding: encoding || 'utf8'
-    });
+    var dataUri;
+    if (encoding === 'base64') {
+      dataUri = 'data:' + (mimeType || 'application/octet-stream') + ';base64,' + data;
+    } else {
+      dataUri = 'data:' + (mimeType || 'application/octet-stream') + ';charset=utf-8,' + encodeURIComponent(data);
+    }
+    return sendRequest('navigation.open_new_tab', { url: dataUri });
   }
 
   return {
