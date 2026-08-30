@@ -98,17 +98,17 @@
         },
         {
             "method": "GET",
-            "path": "/lnurl/{tokenHash}",
-            "export": "lnurl-params",
-            "auth": "public",
-            "ownerContext": {"table": "cards", "idParam": "tokenHash"}
-        },
-        {
-            "method": "GET",
             "path": "/lnurl/callback",
             "export": "lnurl-callback",
             "auth": "public",
             "ownerContext": {"table": "cards", "idParam": "k1"}
+        },
+        {
+            "method": "GET",
+            "path": "/lnurl/{tokenHash}",
+            "export": "lnurl-params",
+            "auth": "public",
+            "ownerContext": {"table": "cards", "idParam": "tokenHash"}
         },
         {
             "method": "POST",

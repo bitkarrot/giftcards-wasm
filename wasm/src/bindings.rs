@@ -141,29 +141,6 @@ pub unsafe fn __post_return_bulk_create<T: Guest>(arg0: *mut u8) {
 }
 #[doc(hidden)]
 #[allow(non_snake_case)]
-pub unsafe fn _export_bulk_delete_cabi<T: Guest>(arg0: *mut u8, arg1: usize) -> *mut u8 {
-    #[cfg(target_arch = "wasm32")] _rt::run_ctors_once();
-    let len0 = arg1;
-    let bytes0 = _rt::Vec::from_raw_parts(arg0.cast(), len0, len0);
-    let result1 = T::bulk_delete(_rt::string_lift(bytes0));
-    let ptr2 = (&raw mut _RET_AREA.0).cast::<u8>();
-    let vec3 = (result1.into_bytes()).into_boxed_slice();
-    let ptr3 = vec3.as_ptr().cast::<u8>();
-    let len3 = vec3.len();
-    ::core::mem::forget(vec3);
-    *ptr2.add(::core::mem::size_of::<*const u8>()).cast::<usize>() = len3;
-    *ptr2.add(0).cast::<*mut u8>() = ptr3.cast_mut();
-    ptr2
-}
-#[doc(hidden)]
-#[allow(non_snake_case)]
-pub unsafe fn __post_return_bulk_delete<T: Guest>(arg0: *mut u8) {
-    let l0 = *arg0.add(0).cast::<*mut u8>();
-    let l1 = *arg0.add(::core::mem::size_of::<*const u8>()).cast::<usize>();
-    _rt::cabi_dealloc(l0, l1, 1);
-}
-#[doc(hidden)]
-#[allow(non_snake_case)]
 pub unsafe fn _export_deliver_email_cabi<T: Guest>(
     arg0: *mut u8,
     arg1: usize,
@@ -349,7 +326,6 @@ pub trait Guest {
     fn update_card(payload: _rt::String) -> _rt::String;
     fn delete_card(payload: _rt::String) -> _rt::String;
     fn bulk_create(payload: _rt::String) -> _rt::String;
-    fn bulk_delete(payload: _rt::String) -> _rt::String;
     fn deliver_email(payload: _rt::String) -> _rt::String;
     /// Public API exports
     fn get_public_card(payload: _rt::String) -> _rt::String;
@@ -395,21 +371,15 @@ macro_rules! __export_world_giftcards_cabi {
         (export_name = "cabi_post_bulk-create")] unsafe extern "C" fn
         _post_return_bulk_create(arg0 : * mut u8,) { unsafe { $($path_to_types)*::
         __post_return_bulk_create::<$ty > (arg0) } } #[unsafe (export_name =
-        "bulk-delete")] unsafe extern "C" fn export_bulk_delete(arg0 : * mut u8, arg1 :
-        usize,) -> * mut u8 { unsafe { $($path_to_types)*::
-        _export_bulk_delete_cabi::<$ty > (arg0, arg1) } } #[unsafe (export_name =
-        "cabi_post_bulk-delete")] unsafe extern "C" fn _post_return_bulk_delete(arg0 : *
-        mut u8,) { unsafe { $($path_to_types)*:: __post_return_bulk_delete::<$ty > (arg0)
-        } } #[unsafe (export_name = "deliver-email")] unsafe extern "C" fn
-        export_deliver_email(arg0 : * mut u8, arg1 : usize,) -> * mut u8 { unsafe {
-        $($path_to_types)*:: _export_deliver_email_cabi::<$ty > (arg0, arg1) } } #[unsafe
-        (export_name = "cabi_post_deliver-email")] unsafe extern "C" fn
-        _post_return_deliver_email(arg0 : * mut u8,) { unsafe { $($path_to_types)*::
-        __post_return_deliver_email::<$ty > (arg0) } } #[unsafe (export_name =
-        "get-public-card")] unsafe extern "C" fn export_get_public_card(arg0 : * mut u8,
-        arg1 : usize,) -> * mut u8 { unsafe { $($path_to_types)*::
-        _export_get_public_card_cabi::<$ty > (arg0, arg1) } } #[unsafe (export_name =
-        "cabi_post_get-public-card")] unsafe extern "C" fn
+        "deliver-email")] unsafe extern "C" fn export_deliver_email(arg0 : * mut u8, arg1
+        : usize,) -> * mut u8 { unsafe { $($path_to_types)*::
+        _export_deliver_email_cabi::<$ty > (arg0, arg1) } } #[unsafe (export_name =
+        "cabi_post_deliver-email")] unsafe extern "C" fn _post_return_deliver_email(arg0
+        : * mut u8,) { unsafe { $($path_to_types)*:: __post_return_deliver_email::<$ty >
+        (arg0) } } #[unsafe (export_name = "get-public-card")] unsafe extern "C" fn
+        export_get_public_card(arg0 : * mut u8, arg1 : usize,) -> * mut u8 { unsafe {
+        $($path_to_types)*:: _export_get_public_card_cabi::<$ty > (arg0, arg1) } }
+        #[unsafe (export_name = "cabi_post_get-public-card")] unsafe extern "C" fn
         _post_return_get_public_card(arg0 : * mut u8,) { unsafe { $($path_to_types)*::
         __post_return_get_public_card::<$ty > (arg0) } } #[unsafe (export_name =
         "lnurl-params")] unsafe extern "C" fn export_lnurl_params(arg0 : * mut u8, arg1 :
@@ -638,7 +608,6 @@ pub mod lnbits {
                 pub payment_request: _rt::String,
                 pub max_sat: Option<u64>,
                 pub description: _rt::String,
-                pub fee_reserve_msat: Option<u64>,
             }
             impl ::core::fmt::Debug for PayInvoiceRequest {
                 fn fmt(
@@ -650,7 +619,6 @@ pub mod lnbits {
                         .field("payment-request", &self.payment_request)
                         .field("max-sat", &self.max_sat)
                         .field("description", &self.description)
-                        .field("fee-reserve-msat", &self.fee_reserve_msat)
                         .finish()
                 }
             }
@@ -722,40 +690,6 @@ pub mod lnbits {
                         .field("payment-hash", &self.payment_hash)
                         .field("payment-request", &self.payment_request)
                         .field("checking-id", &self.checking_id)
-                        .finish()
-                }
-            }
-            /// --- Update Wallet Balance (direct debit/credit) ---
-            #[derive(Clone)]
-            pub struct UpdateWalletBalanceRequest {
-                pub wallet_id: _rt::String,
-                pub amount_sat: i64,
-            }
-            impl ::core::fmt::Debug for UpdateWalletBalanceRequest {
-                fn fmt(
-                    &self,
-                    f: &mut ::core::fmt::Formatter<'_>,
-                ) -> ::core::fmt::Result {
-                    f.debug_struct("UpdateWalletBalanceRequest")
-                        .field("wallet-id", &self.wallet_id)
-                        .field("amount-sat", &self.amount_sat)
-                        .finish()
-                }
-            }
-            #[repr(C)]
-            #[derive(Clone, Copy)]
-            pub struct UpdateWalletBalanceResponse {
-                pub ok: bool,
-                pub balance_msat: i64,
-            }
-            impl ::core::fmt::Debug for UpdateWalletBalanceResponse {
-                fn fmt(
-                    &self,
-                    f: &mut ::core::fmt::Formatter<'_>,
-                ) -> ::core::fmt::Result {
-                    f.debug_struct("UpdateWalletBalanceResponse")
-                        .field("ok", &self.ok)
-                        .field("balance-msat", &self.balance_msat)
                         .finish()
                 }
             }
@@ -873,43 +807,6 @@ pub mod lnbits {
                         .field("status-code", &self.status_code)
                         .field("headers", &self.headers)
                         .field("body", &self.body)
-                        .finish()
-                }
-            }
-            /// --- Email ---
-            #[derive(Clone)]
-            pub struct SendEmailRequest {
-                pub to_email: _rt::String,
-                pub subject: _rt::String,
-                pub body: _rt::String,
-                pub html_body: Option<_rt::String>,
-            }
-            impl ::core::fmt::Debug for SendEmailRequest {
-                fn fmt(
-                    &self,
-                    f: &mut ::core::fmt::Formatter<'_>,
-                ) -> ::core::fmt::Result {
-                    f.debug_struct("SendEmailRequest")
-                        .field("to-email", &self.to_email)
-                        .field("subject", &self.subject)
-                        .field("body", &self.body)
-                        .field("html-body", &self.html_body)
-                        .finish()
-                }
-            }
-            #[derive(Clone)]
-            pub struct SendEmailResponse {
-                pub ok: bool,
-                pub error: Option<_rt::String>,
-            }
-            impl ::core::fmt::Debug for SendEmailResponse {
-                fn fmt(
-                    &self,
-                    f: &mut ::core::fmt::Formatter<'_>,
-                ) -> ::core::fmt::Result {
-                    f.debug_struct("SendEmailResponse")
-                        .field("ok", &self.ok)
-                        .field("error", &self.error)
                         .finish()
                 }
             }
@@ -1489,7 +1386,6 @@ pub mod lnbits {
                         payment_request: payment_request0,
                         max_sat: max_sat0,
                         description: description0,
-                        fee_reserve_msat: fee_reserve_msat0,
                     } = req;
                     let vec1 = wallet_id0;
                     let ptr1 = vec1.as_ptr().cast::<u8>();
@@ -1504,16 +1400,12 @@ pub mod lnbits {
                     let vec4 = description0;
                     let ptr4 = vec4.as_ptr().cast::<u8>();
                     let len4 = vec4.len();
-                    let (result5_0, result5_1) = match fee_reserve_msat0 {
-                        Some(e) => (1i32, _rt::as_i64(e)),
-                        None => (0i32, 0i64),
-                    };
-                    let ptr6 = ret_area.0.as_mut_ptr().cast::<u8>();
+                    let ptr5 = ret_area.0.as_mut_ptr().cast::<u8>();
                     #[cfg(target_arch = "wasm32")]
                     #[link(wasm_import_module = "lnbits:extension/host")]
                     unsafe extern "C" {
                         #[link_name = "pay-invoice"]
-                        fn wit_import7(
+                        fn wit_import6(
                             _: *mut u8,
                             _: usize,
                             _: *mut u8,
@@ -1522,13 +1414,11 @@ pub mod lnbits {
                             _: i64,
                             _: *mut u8,
                             _: usize,
-                            _: i32,
-                            _: i64,
                             _: *mut u8,
                         );
                     }
                     #[cfg(not(target_arch = "wasm32"))]
-                    unsafe extern "C" fn wit_import7(
+                    unsafe extern "C" fn wit_import6(
                         _: *mut u8,
                         _: usize,
                         _: *mut u8,
@@ -1537,14 +1427,12 @@ pub mod lnbits {
                         _: i64,
                         _: *mut u8,
                         _: usize,
-                        _: i32,
-                        _: i64,
                         _: *mut u8,
                     ) {
                         unreachable!()
                     }
                     unsafe {
-                        wit_import7(
+                        wit_import6(
                             ptr1.cast_mut(),
                             len1,
                             ptr2.cast_mut(),
@@ -1553,136 +1441,134 @@ pub mod lnbits {
                             result3_1,
                             ptr4.cast_mut(),
                             len4,
-                            result5_0,
-                            result5_1,
-                            ptr6,
+                            ptr5,
                         )
                     };
-                    let l8 = i32::from(*ptr6.add(0).cast::<u8>());
-                    let l9 = i32::from(
-                        *ptr6.add(::core::mem::size_of::<*const u8>()).cast::<u8>(),
+                    let l7 = i32::from(*ptr5.add(0).cast::<u8>());
+                    let l8 = i32::from(
+                        *ptr5.add(::core::mem::size_of::<*const u8>()).cast::<u8>(),
                     );
-                    let l13 = i32::from(
-                        *ptr6.add(4 * ::core::mem::size_of::<*const u8>()).cast::<u8>(),
+                    let l12 = i32::from(
+                        *ptr5.add(4 * ::core::mem::size_of::<*const u8>()).cast::<u8>(),
                     );
-                    let l17 = i32::from(
-                        *ptr6.add(7 * ::core::mem::size_of::<*const u8>()).cast::<u8>(),
+                    let l16 = i32::from(
+                        *ptr5.add(7 * ::core::mem::size_of::<*const u8>()).cast::<u8>(),
                     );
-                    let l21 = i32::from(
-                        *ptr6.add(10 * ::core::mem::size_of::<*const u8>()).cast::<u8>(),
+                    let l20 = i32::from(
+                        *ptr5.add(10 * ::core::mem::size_of::<*const u8>()).cast::<u8>(),
                     );
-                    let l25 = *ptr6
+                    let l24 = *ptr5
                         .add(8 + 12 * ::core::mem::size_of::<*const u8>())
                         .cast::<i64>();
-                    let l26 = *ptr6
+                    let l25 = *ptr5
                         .add(16 + 12 * ::core::mem::size_of::<*const u8>())
                         .cast::<i64>();
-                    let l27 = i32::from(
-                        *ptr6
+                    let l26 = i32::from(
+                        *ptr5
                             .add(24 + 12 * ::core::mem::size_of::<*const u8>())
                             .cast::<u8>(),
                     );
-                    let l28 = i32::from(
-                        *ptr6
+                    let l27 = i32::from(
+                        *ptr5
                             .add(25 + 12 * ::core::mem::size_of::<*const u8>())
                             .cast::<u8>(),
                     );
-                    let result29 = PayInvoiceResponse {
-                        ok: _rt::bool_lift(l8 as u8),
-                        error: match l9 {
+                    let result28 = PayInvoiceResponse {
+                        ok: _rt::bool_lift(l7 as u8),
+                        error: match l8 {
                             0 => None,
                             1 => {
                                 let e = {
-                                    let l10 = *ptr6
+                                    let l9 = *ptr5
                                         .add(2 * ::core::mem::size_of::<*const u8>())
                                         .cast::<*mut u8>();
-                                    let l11 = *ptr6
+                                    let l10 = *ptr5
                                         .add(3 * ::core::mem::size_of::<*const u8>())
                                         .cast::<usize>();
-                                    let len12 = l11;
-                                    let bytes12 = _rt::Vec::from_raw_parts(
-                                        l10.cast(),
-                                        len12,
-                                        len12,
+                                    let len11 = l10;
+                                    let bytes11 = _rt::Vec::from_raw_parts(
+                                        l9.cast(),
+                                        len11,
+                                        len11,
                                     );
-                                    _rt::string_lift(bytes12)
+                                    _rt::string_lift(bytes11)
                                 };
                                 Some(e)
                             }
                             _ => _rt::invalid_enum_discriminant(),
                         },
-                        checking_id: match l13 {
+                        checking_id: match l12 {
                             0 => None,
                             1 => {
                                 let e = {
-                                    let l14 = *ptr6
+                                    let l13 = *ptr5
                                         .add(5 * ::core::mem::size_of::<*const u8>())
                                         .cast::<*mut u8>();
-                                    let l15 = *ptr6
+                                    let l14 = *ptr5
                                         .add(6 * ::core::mem::size_of::<*const u8>())
                                         .cast::<usize>();
-                                    let len16 = l15;
-                                    let bytes16 = _rt::Vec::from_raw_parts(
-                                        l14.cast(),
-                                        len16,
-                                        len16,
+                                    let len15 = l14;
+                                    let bytes15 = _rt::Vec::from_raw_parts(
+                                        l13.cast(),
+                                        len15,
+                                        len15,
                                     );
-                                    _rt::string_lift(bytes16)
+                                    _rt::string_lift(bytes15)
                                 };
                                 Some(e)
                             }
                             _ => _rt::invalid_enum_discriminant(),
                         },
-                        payment_hash: match l17 {
+                        payment_hash: match l16 {
                             0 => None,
                             1 => {
                                 let e = {
-                                    let l18 = *ptr6
+                                    let l17 = *ptr5
                                         .add(8 * ::core::mem::size_of::<*const u8>())
                                         .cast::<*mut u8>();
-                                    let l19 = *ptr6
+                                    let l18 = *ptr5
                                         .add(9 * ::core::mem::size_of::<*const u8>())
                                         .cast::<usize>();
-                                    let len20 = l19;
-                                    let bytes20 = _rt::Vec::from_raw_parts(
-                                        l18.cast(),
-                                        len20,
-                                        len20,
+                                    let len19 = l18;
+                                    let bytes19 = _rt::Vec::from_raw_parts(
+                                        l17.cast(),
+                                        len19,
+                                        len19,
                                     );
-                                    _rt::string_lift(bytes20)
+                                    _rt::string_lift(bytes19)
                                 };
                                 Some(e)
                             }
                             _ => _rt::invalid_enum_discriminant(),
                         },
-                        status: match l21 {
+                        status: match l20 {
                             0 => None,
                             1 => {
                                 let e = {
-                                    let l22 = *ptr6
+                                    let l21 = *ptr5
                                         .add(11 * ::core::mem::size_of::<*const u8>())
                                         .cast::<*mut u8>();
-                                    let l23 = *ptr6
+                                    let l22 = *ptr5
                                         .add(12 * ::core::mem::size_of::<*const u8>())
                                         .cast::<usize>();
-                                    let len24 = l23;
-                                    let bytes24 = _rt::Vec::from_raw_parts(
-                                        l22.cast(),
-                                        len24,
-                                        len24,
+                                    let len23 = l22;
+                                    let bytes23 = _rt::Vec::from_raw_parts(
+                                        l21.cast(),
+                                        len23,
+                                        len23,
                                     );
-                                    _rt::string_lift(bytes24)
+                                    _rt::string_lift(bytes23)
                                 };
                                 Some(e)
                             }
                             _ => _rt::invalid_enum_discriminant(),
                         },
-                        amount_msat: l25 as u64,
-                        fee_msat: l26 as u64,
-                        pending: _rt::bool_lift(l27 as u8),
-                        success: _rt::bool_lift(l28 as u8),
+                        amount_msat: l24 as u64,
+                        fee_msat: l25 as u64,
+                        pending: _rt::bool_lift(l26 as u8),
+                        success: _rt::bool_lift(l27 as u8),
                     };
-                    result29
+                    result28
                 }
             }
             #[allow(unused_unsafe, clippy::all)]
@@ -1802,54 +1688,6 @@ pub mod lnbits {
                         checking_id: _rt::string_lift(bytes16),
                     };
                     result17
-                }
-            }
-            #[allow(unused_unsafe, clippy::all)]
-            pub fn update_wallet_balance(
-                req: &UpdateWalletBalanceRequest,
-            ) -> UpdateWalletBalanceResponse {
-                unsafe {
-                    #[repr(align(8))]
-                    struct RetArea([::core::mem::MaybeUninit<u8>; 16]);
-                    let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 16]);
-                    let UpdateWalletBalanceRequest {
-                        wallet_id: wallet_id0,
-                        amount_sat: amount_sat0,
-                    } = req;
-                    let vec1 = wallet_id0;
-                    let ptr1 = vec1.as_ptr().cast::<u8>();
-                    let len1 = vec1.len();
-                    let ptr2 = ret_area.0.as_mut_ptr().cast::<u8>();
-                    #[cfg(target_arch = "wasm32")]
-                    #[link(wasm_import_module = "lnbits:extension/host")]
-                    unsafe extern "C" {
-                        #[link_name = "update-wallet-balance"]
-                        fn wit_import3(_: *mut u8, _: usize, _: i64, _: *mut u8);
-                    }
-                    #[cfg(not(target_arch = "wasm32"))]
-                    unsafe extern "C" fn wit_import3(
-                        _: *mut u8,
-                        _: usize,
-                        _: i64,
-                        _: *mut u8,
-                    ) {
-                        unreachable!()
-                    }
-                    unsafe {
-                        wit_import3(
-                            ptr1.cast_mut(),
-                            len1,
-                            _rt::as_i64(amount_sat0),
-                            ptr2,
-                        )
-                    };
-                    let l4 = i32::from(*ptr2.add(0).cast::<u8>());
-                    let l5 = *ptr2.add(8).cast::<i64>();
-                    let result6 = UpdateWalletBalanceResponse {
-                        ok: _rt::bool_lift(l4 as u8),
-                        balance_msat: l5,
-                    };
-                    result6
                 }
             }
             #[allow(unused_unsafe, clippy::all)]
@@ -2238,123 +2076,6 @@ pub mod lnbits {
                 }
             }
             #[allow(unused_unsafe, clippy::all)]
-            pub fn send_email(req: &SendEmailRequest) -> SendEmailResponse {
-                unsafe {
-                    #[cfg_attr(target_pointer_width = "64", repr(align(8)))]
-                    #[cfg_attr(target_pointer_width = "32", repr(align(4)))]
-                    struct RetArea(
-                        [::core::mem::MaybeUninit<
-                            u8,
-                        >; 4 * ::core::mem::size_of::<*const u8>()],
-                    );
-                    let mut ret_area = RetArea(
-                        [::core::mem::MaybeUninit::uninit(); 4
-                            * ::core::mem::size_of::<*const u8>()],
-                    );
-                    let SendEmailRequest {
-                        to_email: to_email0,
-                        subject: subject0,
-                        body: body0,
-                        html_body: html_body0,
-                    } = req;
-                    let vec1 = to_email0;
-                    let ptr1 = vec1.as_ptr().cast::<u8>();
-                    let len1 = vec1.len();
-                    let vec2 = subject0;
-                    let ptr2 = vec2.as_ptr().cast::<u8>();
-                    let len2 = vec2.len();
-                    let vec3 = body0;
-                    let ptr3 = vec3.as_ptr().cast::<u8>();
-                    let len3 = vec3.len();
-                    let (result5_0, result5_1, result5_2) = match html_body0 {
-                        Some(e) => {
-                            let vec4 = e;
-                            let ptr4 = vec4.as_ptr().cast::<u8>();
-                            let len4 = vec4.len();
-                            (1i32, ptr4.cast_mut(), len4)
-                        }
-                        None => (0i32, ::core::ptr::null_mut(), 0usize),
-                    };
-                    let ptr6 = ret_area.0.as_mut_ptr().cast::<u8>();
-                    #[cfg(target_arch = "wasm32")]
-                    #[link(wasm_import_module = "lnbits:extension/host")]
-                    unsafe extern "C" {
-                        #[link_name = "send-email"]
-                        fn wit_import7(
-                            _: *mut u8,
-                            _: usize,
-                            _: *mut u8,
-                            _: usize,
-                            _: *mut u8,
-                            _: usize,
-                            _: i32,
-                            _: *mut u8,
-                            _: usize,
-                            _: *mut u8,
-                        );
-                    }
-                    #[cfg(not(target_arch = "wasm32"))]
-                    unsafe extern "C" fn wit_import7(
-                        _: *mut u8,
-                        _: usize,
-                        _: *mut u8,
-                        _: usize,
-                        _: *mut u8,
-                        _: usize,
-                        _: i32,
-                        _: *mut u8,
-                        _: usize,
-                        _: *mut u8,
-                    ) {
-                        unreachable!()
-                    }
-                    unsafe {
-                        wit_import7(
-                            ptr1.cast_mut(),
-                            len1,
-                            ptr2.cast_mut(),
-                            len2,
-                            ptr3.cast_mut(),
-                            len3,
-                            result5_0,
-                            result5_1,
-                            result5_2,
-                            ptr6,
-                        )
-                    };
-                    let l8 = i32::from(*ptr6.add(0).cast::<u8>());
-                    let l9 = i32::from(
-                        *ptr6.add(::core::mem::size_of::<*const u8>()).cast::<u8>(),
-                    );
-                    let result13 = SendEmailResponse {
-                        ok: _rt::bool_lift(l8 as u8),
-                        error: match l9 {
-                            0 => None,
-                            1 => {
-                                let e = {
-                                    let l10 = *ptr6
-                                        .add(2 * ::core::mem::size_of::<*const u8>())
-                                        .cast::<*mut u8>();
-                                    let l11 = *ptr6
-                                        .add(3 * ::core::mem::size_of::<*const u8>())
-                                        .cast::<usize>();
-                                    let len12 = l11;
-                                    let bytes12 = _rt::Vec::from_raw_parts(
-                                        l10.cast(),
-                                        len12,
-                                        len12,
-                                    );
-                                    _rt::string_lift(bytes12)
-                                };
-                                Some(e)
-                            }
-                            _ => _rt::invalid_enum_discriminant(),
-                        },
-                    };
-                    result13
-                }
-            }
-            #[allow(unused_unsafe, clippy::all)]
             pub fn now() -> NowResponse {
                 unsafe {
                     #[cfg(target_arch = "wasm32")]
@@ -2617,9 +2338,9 @@ pub(crate) use __export_giftcards_impl as export;
 )]
 #[doc(hidden)]
 #[allow(clippy::octal_escapes)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 2586] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\x9a\x13\x01A\x02\x01\
-A\x11\x01B_\x01r\x02\x05tables\x02ids\x04\0\x13storage-get-request\x03\0\0\x01ks\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 2271] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xdf\x10\x01A\x02\x01\
+A\x10\x01BS\x01r\x02\x05tables\x02ids\x04\0\x13storage-get-request\x03\0\0\x01ks\
 \x01r\x01\x09data-json\x02\x04\0\x14storage-get-response\x03\0\x03\x01r\x02\x05t\
 ables\x02ids\x04\0\x1astorage-get-public-request\x03\0\x05\x01r\x02\x05tables\x09\
 data-json\x02\x04\0\x13storage-set-request\x03\0\x07\x01r\x01\x02ok\x7f\x04\0\x14\
@@ -2629,47 +2350,41 @@ storage-set-response\x03\0\x09\x01r\x02\x05tables\x02ids\x04\0\x16storage-delete
 sort-by\x02\x0adescending\x7f\x05limity\x06offsety\x04\0\x19storage-paginated-re\
 quest\x03\0\x0f\x01r\x02\x09rows-jsons\x05totaly\x04\0\x1astorage-paginated-resp\
 onse\x03\0\x11\x01r\x04\x05tables\x0cfilters-json\x02\x05limity\x06offsety\x04\0\
-\x20storage-public-paginated-request\x03\0\x13\x01kw\x01r\x05\x09wallet-ids\x0fp\
-ayment-requests\x07max-sat\x15\x0bdescriptions\x10fee-reserve-msat\x15\x04\0\x13\
-pay-invoice-request\x03\0\x16\x01r\x09\x02ok\x7f\x05error\x02\x0bchecking-id\x02\
-\x0cpayment-hash\x02\x06status\x02\x0bamount-msatw\x08fee-msatw\x07pending\x7f\x07\
-success\x7f\x04\0\x14pay-invoice-response\x03\0\x18\x01r\x05\x09wallet-ids\x06am\
-ountw\x08currency\x02\x04memos\x03tags\x04\0\x16create-invoice-request\x03\0\x1a\
-\x01r\x03\x0cpayment-hashs\x0fpayment-requests\x0bchecking-ids\x04\0\x17create-i\
-nvoice-response\x03\0\x1c\x01r\x02\x09wallet-ids\x0aamount-satx\x04\0\x1dupdate-\
-wallet-balance-request\x03\0\x1e\x01r\x02\x02ok\x7f\x0cbalance-msatx\x04\0\x1eup\
-date-wallet-balance-response\x03\0\x20\x01r\x01\x09wallet-ids\x04\0\x16wallet-ba\
-lance-request\x03\0\"\x01r\x0a\x09wallet-ids\x04names\x08currency\x02\x0cbalance\
--msatw\x0bbalance-satw\x11withdrawable-msatw\x10withdrawable-satw\x10fee-reserve\
--msatw\x0ffee-reserve-satw\x11can-send-payments\x7f\x04\0\x17wallet-balance-resp\
-onse\x03\0$\x01r\x03\x02ids\x04names\x08currency\x02\x04\0\x0ewallet-summary\x03\
-\0&\x01p'\x01r\x01\x07wallets(\x04\0\x15list-wallets-response\x03\0)\x01o\x02ss\x01\
-p+\x01r\x04\x06methods\x03urls\x07headers,\x04body\x02\x04\0\x13http-request-par\
-ams\x03\0-\x01r\x03\x0bstatus-codey\x07headers,\x04bodys\x04\0\x12http-response-\
-data\x03\0/\x01r\x04\x08to-emails\x07subjects\x04bodys\x09html-body\x02\x04\0\x12\
-send-email-request\x03\01\x01r\x02\x02ok\x7f\x05error\x02\x04\0\x13send-email-re\
-sponse\x03\03\x01r\x01\x09timestampw\x04\0\x0cnow-response\x03\05\x01r\x01\x06pr\
-efixs\x04\0\x11random-id-request\x03\07\x01r\x01\x02ids\x04\0\x12random-id-respo\
-nse\x03\09\x01r\x02\x05levels\x07messages\x04\0\x0blog-request\x03\0;\x01r\x01\x02\
-ok\x7f\x04\0\x0clog-response\x03\0=\x01@\x01\x03req\x01\0\x04\x04\0\x0bstorage-g\
-et\x01?\x01@\x01\x03req\x06\0\x04\x04\0\x12storage-get-public\x01@\x01@\x01\x03r\
-eq\x08\0\x0a\x04\0\x0bstorage-set\x01A\x01@\x01\x03req\x0c\0\x0e\x04\0\x0estorag\
-e-delete\x01B\x01@\x01\x03req\x10\0\x12\x04\0\x15storage-get-paginated\x01C\x01@\
-\x01\x03req\x14\0\x12\x04\0\x1cstorage-get-public-paginated\x01D\x01@\x01\x03req\
-\x17\0\x19\x04\0\x0bpay-invoice\x01E\x01@\x01\x03req\x1b\0\x1d\x04\0\x0ecreate-i\
-nvoice\x01F\x01@\x01\x03req\x1f\0!\x04\0\x15update-wallet-balance\x01G\x01@\x01\x03\
-req#\0%\x04\0\x0ewallet-balance\x01H\x01@\0\0*\x04\0\x11list-user-wallets\x01I\x01\
-@\x01\x03req.\00\x04\0\x0chttp-request\x01J\x01@\x01\x03req2\04\x04\0\x0asend-em\
-ail\x01K\x01@\0\06\x04\0\x03now\x01L\x01@\x01\x03req8\0:\x04\0\x09random-id\x01M\
-\x01@\x01\x03req<\0>\x04\0\x03log\x01N\x03\0\x15lnbits:extension/host\x05\0\x01@\
-\x01\x07payloads\0s\x04\0\x0bcreate-card\x01\x01\x04\0\x09get-cards\x01\x01\x04\0\
-\x08get-card\x01\x01\x04\0\x0bupdate-card\x01\x01\x04\0\x0bdelete-card\x01\x01\x04\
-\0\x0bbulk-create\x01\x01\x04\0\x0bbulk-delete\x01\x01\x04\0\x0ddeliver-email\x01\
-\x01\x04\0\x0fget-public-card\x01\x01\x04\0\x0clnurl-params\x01\x01\x04\0\x0elnu\
-rl-callback\x01\x01\x04\0\x0bclaim-cards\x01\x01\x04\0\x0cverify-claim\x01\x01\x04\
-\0\x0fon-invoice-paid\x01\x01\x04\0\x1alnbits:extension/giftcards\x04\0\x0b\x0f\x01\
-\0\x09giftcards\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\
-\x070.227.1\x10wit-bindgen-rust\x060.41.0";
+\x20storage-public-paginated-request\x03\0\x13\x01kw\x01r\x04\x09wallet-ids\x0fp\
+ayment-requests\x07max-sat\x15\x0bdescriptions\x04\0\x13pay-invoice-request\x03\0\
+\x16\x01r\x09\x02ok\x7f\x05error\x02\x0bchecking-id\x02\x0cpayment-hash\x02\x06s\
+tatus\x02\x0bamount-msatw\x08fee-msatw\x07pending\x7f\x07success\x7f\x04\0\x14pa\
+y-invoice-response\x03\0\x18\x01r\x05\x09wallet-ids\x06amountw\x08currency\x02\x04\
+memos\x03tags\x04\0\x16create-invoice-request\x03\0\x1a\x01r\x03\x0cpayment-hash\
+s\x0fpayment-requests\x0bchecking-ids\x04\0\x17create-invoice-response\x03\0\x1c\
+\x01r\x01\x09wallet-ids\x04\0\x16wallet-balance-request\x03\0\x1e\x01r\x0a\x09wa\
+llet-ids\x04names\x08currency\x02\x0cbalance-msatw\x0bbalance-satw\x11withdrawab\
+le-msatw\x10withdrawable-satw\x10fee-reserve-msatw\x0ffee-reserve-satw\x11can-se\
+nd-payments\x7f\x04\0\x17wallet-balance-response\x03\0\x20\x01r\x03\x02ids\x04na\
+mes\x08currency\x02\x04\0\x0ewallet-summary\x03\0\"\x01p#\x01r\x01\x07wallets$\x04\
+\0\x15list-wallets-response\x03\0%\x01o\x02ss\x01p'\x01r\x04\x06methods\x03urls\x07\
+headers(\x04body\x02\x04\0\x13http-request-params\x03\0)\x01r\x03\x0bstatus-code\
+y\x07headers(\x04bodys\x04\0\x12http-response-data\x03\0+\x01r\x01\x09timestampw\
+\x04\0\x0cnow-response\x03\0-\x01r\x01\x06prefixs\x04\0\x11random-id-request\x03\
+\0/\x01r\x01\x02ids\x04\0\x12random-id-response\x03\01\x01r\x02\x05levels\x07mes\
+sages\x04\0\x0blog-request\x03\03\x01r\x01\x02ok\x7f\x04\0\x0clog-response\x03\0\
+5\x01@\x01\x03req\x01\0\x04\x04\0\x0bstorage-get\x017\x01@\x01\x03req\x06\0\x04\x04\
+\0\x12storage-get-public\x018\x01@\x01\x03req\x08\0\x0a\x04\0\x0bstorage-set\x01\
+9\x01@\x01\x03req\x0c\0\x0e\x04\0\x0estorage-delete\x01:\x01@\x01\x03req\x10\0\x12\
+\x04\0\x15storage-get-paginated\x01;\x01@\x01\x03req\x14\0\x12\x04\0\x1cstorage-\
+get-public-paginated\x01<\x01@\x01\x03req\x17\0\x19\x04\0\x0bpay-invoice\x01=\x01\
+@\x01\x03req\x1b\0\x1d\x04\0\x0ecreate-invoice\x01>\x01@\x01\x03req\x1f\0!\x04\0\
+\x0ewallet-balance\x01?\x01@\0\0&\x04\0\x11list-user-wallets\x01@\x01@\x01\x03re\
+q*\0,\x04\0\x0chttp-request\x01A\x01@\0\0.\x04\0\x03now\x01B\x01@\x01\x03req0\02\
+\x04\0\x09random-id\x01C\x01@\x01\x03req4\06\x04\0\x03log\x01D\x03\0\x15lnbits:e\
+xtension/host\x05\0\x01@\x01\x07payloads\0s\x04\0\x0bcreate-card\x01\x01\x04\0\x09\
+get-cards\x01\x01\x04\0\x08get-card\x01\x01\x04\0\x0bupdate-card\x01\x01\x04\0\x0b\
+delete-card\x01\x01\x04\0\x0bbulk-create\x01\x01\x04\0\x0ddeliver-email\x01\x01\x04\
+\0\x0fget-public-card\x01\x01\x04\0\x0clnurl-params\x01\x01\x04\0\x0elnurl-callb\
+ack\x01\x01\x04\0\x0bclaim-cards\x01\x01\x04\0\x0cverify-claim\x01\x01\x04\0\x0f\
+on-invoice-paid\x01\x01\x04\0\x1alnbits:extension/giftcards\x04\0\x0b\x0f\x01\0\x09\
+giftcards\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.\
+227.1\x10wit-bindgen-rust\x060.41.0";
 #[inline(never)]
 #[doc(hidden)]
 pub fn __link_custom_section_describing_imports() {

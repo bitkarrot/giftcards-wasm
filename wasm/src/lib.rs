@@ -483,8 +483,8 @@ impl Guest for Component {
                 });
                 card["qrConfig"] = Value::String(serde_json::to_string(&qr_config).unwrap_or_default());
                 card["textConfig"] = Value::String(serde_json::to_string(&text_config).unwrap_or_default());
-                card["templateName"] = json!(design.get("template_name").and_then(|v| v.as_str()).unwrap_or("portrait"));
-                card["templateAssetId"] = json!(design.get("template_asset_id").and_then(|v| v.as_str()).unwrap_or(""));
+                card["templateName"] = json!(design.get("templateName").and_then(|v| v.as_str()).unwrap_or(design.get("template_name").and_then(|v| v.as_str()).unwrap_or("portrait")));
+                card["templateAssetId"] = json!(design.get("templateAssetId").and_then(|v| v.as_str()).unwrap_or(design.get("template_asset_id").and_then(|v| v.as_str()).unwrap_or("")));
                 card["designJson"] = Value::String(serde_json::to_string(design).unwrap_or_default());
             }
         }
@@ -705,8 +705,8 @@ impl Guest for Component {
                 });
                 card["qrConfig"] = Value::String(serde_json::to_string(&qr_config).unwrap_or_default());
                 card["textConfig"] = Value::String(serde_json::to_string(&text_config).unwrap_or_default());
-                card["templateName"] = json!(design.get("template_name").and_then(|v| v.as_str()).unwrap_or("portrait"));
-                card["templateAssetId"] = json!(design.get("template_asset_id").and_then(|v| v.as_str()).unwrap_or(""));
+                card["templateName"] = json!(design.get("templateName").and_then(|v| v.as_str()).unwrap_or(design.get("template_name").and_then(|v| v.as_str()).unwrap_or("portrait")));
+                card["templateAssetId"] = json!(design.get("templateAssetId").and_then(|v| v.as_str()).unwrap_or(design.get("template_asset_id").and_then(|v| v.as_str()).unwrap_or("")));
                 card["designJson"] = Value::String(serde_json::to_string(design).unwrap_or_default());
             }
         }
