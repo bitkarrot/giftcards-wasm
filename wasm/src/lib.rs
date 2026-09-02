@@ -120,6 +120,60 @@ fn h_list_wallets() -> Vec<(String, String)> {
         .collect()
 }
 
+fn resolve_user_wallet(req: &Value) -> Result<String, String> {
+    let wallets = h_list_wallets();
+    if wallets.is_empty() {
+        return Err("No wallet available for this user".to_string());
+    }
+
+    match req.get("walletId").and_then(|w| w.as_str()) {
+        Some(wallet_id) if !wallet_id.is_empty() => {
+            if wallets.iter().any(|(id, _)| id == wallet_id) {
+                Ok(wallet_id.to_string())
+            } else {
+                Err("Wallet is not available to this user".to_string())
+            }
+        }
+        _ => Ok(wallets[0].0.clone()),
+    }
+}
+
+fn owned_card(card_id: &str) -> Option<Value> {
+    let user_wallet_ids: Vec<String> = h_list_wallets()
+        .into_iter()
+        .map(|(id, _)| id)
+        .collect();
+    if user_wallet_ids.is_empty() {
+        return None;
+    }
+
+    let filters = json!({"cardId": card_id});
+    let (rows, _) = h_storage_get_paginated("cards", &filters, 1, 0);
+    rows.into_iter().find(|card| {
+        card.get("walletId")
+            .and_then(|wallet_id| wallet_id.as_str())
+            .map(|wallet_id| user_wallet_ids.iter().any(|id| id == wallet_id))
+            .unwrap_or(false)
+    })
+}
+
+fn sanitize_base_url(base: &str) -> String {
+    if (base.starts_with("https://") || base.starts_with("http://"))
+        && !base.chars().any(|c| c.is_whitespace() || c == '@')
+    {
+        base.trim_end_matches('/').to_string()
+    } else {
+        String::new()
+    }
+}
+
+fn trusted_base_url(req: &Value) -> String {
+    req.get("__baseUrl")
+        .and_then(|b| b.as_str())
+        .map(sanitize_base_url)
+        .unwrap_or_default()
+}
+
 fn h_http_request(method: &str, url: &str, body: Option<&str>) -> Value {
     let resp = host::http_request(&host::HttpRequestParams {
         method: method.to_string(),
@@ -353,29 +407,16 @@ impl Guest for Component {
         };
 
         let amount = match req.get("amount").and_then(|a| a.as_u64()) {
-            Some(a) if a > 0 => a,
-            _ => return err("Amount must be a positive integer"),
+            Some(a) if a > 0 && a <= u64::MAX / 1000 => a,
+            _ => return err("Amount must be a positive integer within the Lightning amount limit"),
         };
 
-        let wallet_id = match req.get("walletId").and_then(|w| w.as_str()) {
-            Some(w) if !w.is_empty() => w.to_string(),
-            _ => {
-                // Auto-resolve wallet from user context
-                let wallets = h_list_wallets();
-                if wallets.is_empty() {
-                    return err("No wallet available for this user");
-                }
-                wallets[0].0.clone()
-            }
+        let wallet_id = match resolve_user_wallet(&req) {
+            Ok(wallet_id) => wallet_id,
+            Err(message) => return err(&message),
         };
 
-        let base_url = req
-            .get("__baseUrl")
-            .and_then(|b| b.as_str())
-            .filter(|b| !b.is_empty())
-            .or_else(|| req.get("baseUrl").and_then(|b| b.as_str()))
-            .unwrap_or("")
-            .to_string();
+        let base_url = trusted_base_url(&req);
 
         let (card_id, raw_token, token_hash) = generate_tokens();
         let now = h_now();
@@ -474,15 +515,9 @@ impl Guest for Component {
             Err(e) => return err(&format!("Invalid request: {e}")),
         };
 
-        let wallet_id = match req.get("walletId").and_then(|w| w.as_str()) {
-            Some(w) if !w.is_empty() => w.to_string(),
-            _ => {
-                let wallets = h_list_wallets();
-                if wallets.is_empty() {
-                    return err("No wallet available for this user");
-                }
-                wallets[0].0.clone()
-            }
+        let wallet_id = match resolve_user_wallet(&req) {
+            Ok(wallet_id) => wallet_id,
+            Err(message) => return err(&message),
         };
 
         let mut filters = json!({"walletId": wallet_id});
@@ -544,11 +579,9 @@ impl Guest for Component {
         };
 
         // card_id is the display ID (gc_xxx), but storage id is token_hash.
-        // We need to search by cardId field.
-        let filters = json!({"cardId": card_id});
-        let (rows, _) = h_storage_get_paginated("cards", &filters, 1, 0);
-        let mut card = match rows.first() {
-            Some(c) => c.clone(),
+        // Verify that the card belongs to one of the current user's wallets.
+        let mut card = match owned_card(card_id) {
+            Some(card) => card,
             None => return err("Gift card not found"),
         };
 
@@ -627,10 +660,8 @@ impl Guest for Component {
             _ => return err("cardId is required"),
         };
 
-        let filters = json!({"cardId": card_id});
-        let (rows, _) = h_storage_get_paginated("cards", &filters, 1, 0);
-        let mut card = match rows.first() {
-            Some(c) => c.clone(),
+        let mut card = match owned_card(card_id) {
+            Some(card) => card,
             None => return err("Gift card not found"),
         };
 
@@ -695,10 +726,8 @@ impl Guest for Component {
             _ => return err("cardId is required"),
         };
 
-        let filters = json!({"cardId": card_id});
-        let (rows, _) = h_storage_get_paginated("cards", &filters, 1, 0);
-        let card = match rows.first() {
-            Some(c) => c.clone(),
+        let card = match owned_card(card_id) {
+            Some(card) => card,
             None => return err("Gift card not found"),
         };
 
@@ -714,24 +743,12 @@ impl Guest for Component {
             Err(e) => return err(&format!("Invalid request: {e}")),
         };
 
-        let wallet_id = match req.get("walletId").and_then(|w| w.as_str()) {
-            Some(w) if !w.is_empty() => w.to_string(),
-            _ => {
-                let wallets = h_list_wallets();
-                if wallets.is_empty() {
-                    return err("No wallet available for this user");
-                }
-                wallets[0].0.clone()
-            }
+        let wallet_id = match resolve_user_wallet(&req) {
+            Ok(wallet_id) => wallet_id,
+            Err(message) => return err(&message),
         };
 
-        let base_url = req
-            .get("__baseUrl")
-            .and_then(|b| b.as_str())
-            .filter(|b| !b.is_empty())
-            .or_else(|| req.get("baseUrl").and_then(|b| b.as_str()))
-            .unwrap_or("")
-            .to_string();
+        let base_url = trusted_base_url(&req);
 
         let mut card_ids: Vec<String> = Vec::new();
 
@@ -817,7 +834,7 @@ impl Guest for Component {
             _ => return err("tokenHash is required"),
         };
 
-        let mut card = match h_storage_get("cards", token_hash) {
+        let mut card = match h_storage_get_public("cards", token_hash) {
             Some(c) => c,
             None => return err("Gift card not found"),
         };
@@ -875,42 +892,33 @@ impl Guest for Component {
 
         let status = card.get("status").and_then(|s| s.as_str()).unwrap_or("active");
 
-        // Auto-recover stuck "redeeming" cards: if a card has been in
-        // "redeeming" status for more than 10 minutes, the payment process
-        // likely crashed (e.g., host exception from invalid bolt11 decode)
-        // and the card was never reset to "active". Reset it now so the
-        // user can retry the redemption.
-        if status == "redeeming" {
-            // A previous callback may have crashed (host exception from
-            // invalid bolt11 or payment failure) before resetting the
-            // status. If the card is still "redeeming" and we're being
-            // asked for LNURL params again, the previous redeem attempt
-            // has failed. Reset to "active" so the user can retry.
-            h_log("info", &format!("Auto-recovering stuck card {} from 'redeeming' to 'active'", &token_hash[..token_hash.len().min(8)]));
-            card["status"] = json!("active");
-            if !h_storage_set("cards", &card) {
-                return ok(json!({
-                    "status": "ERROR",
-                    "reason": "Failed to recover card state. Please try again.",
-                }));
-            }
-        } else if status != "active" {
+        // Never automatically unlock a card after a payment attempt. A host
+        // crash can happen after the invoice is paid but before the card is
+        // marked redeemed; unlocking here would permit a second payment.
+        if status != "active" {
             return ok(json!({
                 "status": "ERROR",
-                "reason": format!("Gift card is {}", status),
+                "reason": "Gift card is not available for redemption",
             }));
         }
 
         let amount = card.get("amount").and_then(|v| v.as_u64()).unwrap_or(0);
         // Prefer the public base URL injected by the host (from X-Forwarded-*
         // headers) so the callback URL is reachable by external wallets.
-        // Fall back to the stored baseUrl for backward compatibility.
-        let base_url = req
-            .get("__baseUrl")
+        // Fall back only to a previously validated stored URL; never trust a
+        // caller-supplied baseUrl because it can turn the LNURL into a link
+        // to an attacker-controlled host.
+        let injected_base_url = trusted_base_url(&req);
+        let stored_base_url = card
+            .get("baseUrl")
             .and_then(|b| b.as_str())
-            .filter(|b| !b.is_empty())
-            .or_else(|| card.get("baseUrl").and_then(|v| v.as_str()))
-            .unwrap_or("");
+            .map(sanitize_base_url)
+            .unwrap_or_default();
+        let base_url = if injected_base_url.is_empty() {
+            stored_base_url
+        } else {
+            injected_base_url
+        };
         let card_id = card.get("cardId").and_then(|v| v.as_str()).unwrap_or("");
 
         let callback_url = format!("{}/api/v1/ext/giftcardswasm/lnurl/callback", base_url);
@@ -949,54 +957,21 @@ impl Guest for Component {
 
         check_lazy_expiry(&mut card);
 
-        // Atomic redeeming lock: re-fetch the freshest record and only proceed
-        // if it is still "active". The storage API has no conditional update,
-        // so this compare-and-swap re-reads immediately before flipping status.
-        // If a concurrent caller already moved it off "active", we bail out.
-        let fresh = match h_storage_get("cards", k1) {
-            Some(c) => c,
-            None => return ok(json!({"status": "ERROR", "reason": "Gift card not found"})),
-        };
-        let fresh_status = fresh.get("status").and_then(|s| s.as_str()).unwrap_or("active");
-        // Auto-recover stuck "redeeming" cards: a previous callback may have
-        // crashed (host exception) before resetting the status. If the card
-        // is still "redeeming", treat it as "active" and allow the retry.
-        if fresh_status == "redeeming" {
-            h_log("info", &format!("Auto-recovering stuck card {} from 'redeeming' to 'active' in callback", &k1[..k1.len().min(8)]));
-            let mut recovered = fresh.clone();
-            recovered["status"] = json!("active");
-            if !h_storage_set("cards", &recovered) {
-                return ok(json!({"status": "ERROR", "reason": "Failed to recover card state"}));
-            }
-            // Re-read to confirm
-            let recheck = match h_storage_get("cards", k1) {
-                Some(c) => c,
-                None => return ok(json!({"status": "ERROR", "reason": "Gift card not found"})),
-            };
-            let recheck_status = recheck.get("status").and_then(|s| s.as_str()).unwrap_or("");
-            if recheck_status != "active" {
-                return ok(json!({"status": "ERROR", "reason": "Card is being redeemed by another request"}));
-            }
-            card = recheck;
-        } else if fresh_status != "active" {
-            return ok(json!({"status": "ERROR", "reason": format!("Gift card is {}", fresh_status)}));
-        } else {
-            card = fresh;
+        // Do not unlock a card that is already redeeming. Without an atomic
+        // storage compare-and-set, unlocking after a crash can double-pay.
+        let status = card.get("status").and_then(|s| s.as_str()).unwrap_or("active");
+        if status != "active" {
+            return ok(json!({"status": "ERROR", "reason": "Gift card is not available for redemption"}));
         }
+        // The storage API has no conditional update, so this lock is not
+        // atomic across concurrent WASM invocations. The host should provide
+        // compare-and-set semantics before this endpoint is used in production.
         // Carry over any expiry side-effects from check_lazy_expiry above.
         card["status"] = json!("redeeming");
         let id = card.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
         if !h_storage_set("cards", &card) {
             return ok(json!({"status": "ERROR", "reason": "Failed to lock card"}));
         }
-        // Confirm we won the race: re-read and ensure status is still "redeeming".
-        if let Some(verify) = h_storage_get("cards", k1) {
-            let v_status = verify.get("status").and_then(|s| s.as_str()).unwrap_or("");
-            if v_status != "redeeming" {
-                return ok(json!({"status": "ERROR", "reason": "Card is being redeemed by another request"}));
-            }
-        }
-
         // Pay the invoice from the issuer's wallet
         let wallet_id = card.get("walletId").and_then(|v| v.as_str()).unwrap_or("").to_string();
         let amount = card.get("amount").and_then(|v| v.as_u64()).unwrap_or(0);

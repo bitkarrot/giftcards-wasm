@@ -2,7 +2,7 @@
     "id": "giftcardswasm",
     "name": "Gift Cards (WASM)",
     "short_description": "Create and redeem Lightning gift cards with LNURL-withdraw (WASM port)",
-    "description_md": "https://raw.githubusercontent.com/bitkarrot/giftcardswasm/v0.1.3/description.md",
+    "description_md": "https://raw.githubusercontent.com/bitkarrot/giftcardswasm/v0.1.4/description.md",
     "images": [
         {
             "uri": "https://github.com/bitkarrot/giftcardswasm/raw/main/screenshots/06-card-detail-qr.png"
@@ -16,7 +16,7 @@
         }
     ],
     "license": "MIT",
-    "version": "0.1.3",
+    "version": "0.1.4",
     "min_lnbits_version": "1.6.0rc3",
     "tile": "/ext-assets/giftcardswasm/assets/icon.png",
     "tags": ["gift-cards", "lnurl-withdraw", "wasm", "lightning"],
@@ -114,14 +114,10 @@
     },
     "permissions": [
         {"id": "ext.storage.read", "description": "Read gift card storage"},
-        {"id": "ext.storage.read_public", "description": "Read public gift card data", "policies": [{"table_name": "cards", "public_fields": ["id", "cardId", "amount", "status", "recipientName", "senderName", "message", "createdAt", "expiresAt", "redeemedAt", "expiredAt", "baseUrl", "designJson", "walletId", "tokenHash", "rawToken", "feeMode", "feePercent", "feeSats"], "source_id_field": "id"}]},
+        {"id": "ext.storage.read_public", "description": "Read public gift card data", "policies": [{"table_name": "cards", "public_fields": ["amount", "status", "recipientName", "senderName", "message", "createdAt", "expiresAt", "redeemedAt", "expiredAt", "designJson", "templateName", "templateAssetId", "qrConfig", "textConfig"], "source_id_field": "id"}]},
         {"id": "ext.storage.write", "description": "Write gift card storage"},
-        {"id": "wallet.balance.read", "description": "Read wallet balance"},
-        {"id": "wallet.create_invoice", "description": "Create invoices"},
-        {"id": "wallet.create_invoice_public", "description": "Create public invoices", "policies": [{"table": "cards", "wallet_field": "walletId"}]},
         {"id": "wallet.pay_invoice", "description": "Pay invoices (redeem gift cards)"},
         {"id": "wallet.pay_invoice_background", "description": "Pay invoices in background"},
-        {"id": "wallet.list", "description": "List user wallets"},
-        {"id": "websocket.publish", "description": "Publish websocket messages", "policies": [{"max_messages_per_second": 10}]}
+        {"id": "wallet.list", "description": "List user wallets"}
     ]
 }
