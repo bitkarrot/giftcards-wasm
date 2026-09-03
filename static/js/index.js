@@ -32,7 +32,8 @@
           filename: ''
         },
         walletBalance: 0,
-        // Wallet info from bridge context (no g.user global in WASM)
+        wallets: [],
+        // Selected wallet used to fund gift cards
         walletId: null,
         tablePagination: {
           rowsPerPage: 10
@@ -364,14 +365,15 @@
       var self = this;
       // Initialize dark mode from localStorage or system preference
       this.initDarkMode();
-      window.LNbitsBridge.connect().then(function (ctx) {
+      window.LNbitsBridge.connect().then(async function (ctx) {
+        await self.loadWallets();
         self.loadGiftCards();
         self.loadWalletBalance();
         // Request background payment permission so the LNURL-withdraw
         // callback can pay invoices from the user's wallet when a
         // recipient redeems a gift card. Without this, redemption fails
         // with "missing background payment grant".
-        self.requestBackgroundPaymentPermission(ctx);
+        self.requestBackgroundPaymentPermission();
       }).catch(function (err) {
         console.error('Bridge connection failed:', err);
         self.$q.notify({ message: 'Failed to connect to LNbits bridge', type: 'negative' });
@@ -476,6 +478,20 @@
         }
       },
 
+      async loadWallets() {
+        try {
+          var wallets = await this.apiCall('GET', '/wallets', null);
+          this.wallets = Array.isArray(wallets) ? wallets : [];
+          if (!this.wallets.some(w => w.id === this.walletId)) {
+            this.walletId = this.wallets.length ? this.wallets[0].id : null;
+          }
+        } catch (error) {
+          this.wallets = [];
+          this.walletId = null;
+          this.notifyError(error);
+        }
+      },
+
       async loadWalletBalance() {
         // Wallet balance API is not available to WASM extensions via the bridge.
         // Sats locking is disabled in the WASM version, so we set balance to
@@ -483,26 +499,20 @@
         this.walletBalance = Infinity;
       },
 
-      async requestBackgroundPaymentPermission(ctx) {
+      async requestBackgroundPaymentPermission() {
         // Request background payment permission so the LNURL-withdraw
-        // callback can pay invoices from the user's wallet when a
-        // recipient redeems a gift card.
+        // callback can pay invoices from the user's wallet. Without this,
+        // redemption fails with "missing background payment grant".
         try {
-          var wallets = (ctx && ctx.wallets) || [];
-          if (wallets.length === 0) {
-            console.warn('No wallets available for background payment permission');
+          if (!this.walletId) {
+            console.warn('No wallet available for background payment permission');
             return;
           }
-          // Use the first wallet (the WASM module also auto-resolves to
-          // the first wallet when creating cards).
-          var walletId = wallets[0].id;
           await window.LNbitsBridge.requestBackgroundPaymentPermission(
-            walletId,
+            this.walletId,
             1000000000 // 1 billion sats max — effectively unlimited
           );
         } catch (err) {
-          // Don't show an error — the user may have denied the permission.
-          // They will be prompted again when they try to create a card.
           console.warn('Background payment permission not granted:', err.message || err);
         }
       },
@@ -560,6 +570,7 @@
           var d = this.createDialog.data;
           var payload = {
             amount: d.amount,
+            walletId: this.walletId,
             recipientName: d.recipient_name || '',
             senderName: d.sender_name || '',
             message: d.message || '',
@@ -1142,6 +1153,7 @@
             }
             var csvPayload = {
               rows: this.bulkDialog.csvRows,
+              walletId: this.walletId,
               design_mode: this.bulkDialog.csvData.designMode,
               baseUrl: window.location.origin,
               design: design,
@@ -1164,6 +1176,7 @@
             var samePayload = {
               count: this.bulkDialog.sameData.count,
               amount: this.bulkDialog.sameData.amount,
+              walletId: this.walletId,
               recipientName: this.bulkDialog.sameData.recipient_name || null,
               senderName: this.bulkDialog.sameData.sender_name || null,
               message: this.bulkDialog.sameData.message || null,

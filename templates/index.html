@@ -408,6 +408,20 @@
                 ]"
               ></q-input>
 
+              <q-select
+                filled
+                dense
+                emit-value
+                map-options
+                v-model="walletId"
+                :options="wallets"
+                option-label="name"
+                option-value="id"
+                label="Funding Wallet"
+                hint="Wallet used to fund this gift card."
+                :rules="[val => !!val || 'Select a funding wallet']"
+              ></q-select>
+
               <q-input
                 filled
                 dense
@@ -731,6 +745,20 @@
           <q-form @submit="submitBulkCreate">
             <div class="q-gutter-md">
               <h6 class="text-subtitle1 q-my-none">Bulk Create Gift Cards</h6>
+
+              <q-select
+                filled
+                dense
+                emit-value
+                map-options
+                v-model="walletId"
+                :options="wallets"
+                option-label="name"
+                option-value="id"
+                label="Funding Wallet"
+                hint="Wallet used to fund all cards in this batch."
+                :rules="[val => !!val || 'Select a funding wallet']"
+              ></q-select>
 
               <q-tabs
                 v-model="bulkDialog.activeTab"

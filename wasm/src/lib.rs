@@ -524,6 +524,14 @@ impl Guest for Component {
         }))
     }
 
+    fn get_wallets(_payload: String) -> String {
+        let wallets: Vec<Value> = h_list_wallets()
+            .into_iter()
+            .map(|(id, name)| json!({"id": id, "name": name}))
+            .collect();
+        ok(json!(wallets))
+    }
+
     fn get_cards(payload: String) -> String {
         let req: Value = match serde_json::from_str(&payload) {
             Ok(v) => v,

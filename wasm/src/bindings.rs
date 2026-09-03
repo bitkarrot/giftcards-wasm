@@ -141,6 +141,29 @@ pub unsafe fn __post_return_bulk_create<T: Guest>(arg0: *mut u8) {
 }
 #[doc(hidden)]
 #[allow(non_snake_case)]
+pub unsafe fn _export_get_wallets_cabi<T: Guest>(arg0: *mut u8, arg1: usize) -> *mut u8 {
+    #[cfg(target_arch = "wasm32")] _rt::run_ctors_once();
+    let len0 = arg1;
+    let bytes0 = _rt::Vec::from_raw_parts(arg0.cast(), len0, len0);
+    let result1 = T::get_wallets(_rt::string_lift(bytes0));
+    let ptr2 = (&raw mut _RET_AREA.0).cast::<u8>();
+    let vec3 = (result1.into_bytes()).into_boxed_slice();
+    let ptr3 = vec3.as_ptr().cast::<u8>();
+    let len3 = vec3.len();
+    ::core::mem::forget(vec3);
+    *ptr2.add(::core::mem::size_of::<*const u8>()).cast::<usize>() = len3;
+    *ptr2.add(0).cast::<*mut u8>() = ptr3.cast_mut();
+    ptr2
+}
+#[doc(hidden)]
+#[allow(non_snake_case)]
+pub unsafe fn __post_return_get_wallets<T: Guest>(arg0: *mut u8) {
+    let l0 = *arg0.add(0).cast::<*mut u8>();
+    let l1 = *arg0.add(::core::mem::size_of::<*const u8>()).cast::<usize>();
+    _rt::cabi_dealloc(l0, l1, 1);
+}
+#[doc(hidden)]
+#[allow(non_snake_case)]
 pub unsafe fn _export_get_public_card_cabi<T: Guest>(
     arg0: *mut u8,
     arg1: usize,
@@ -251,6 +274,7 @@ pub trait Guest {
     fn update_card(payload: _rt::String) -> _rt::String;
     fn delete_card(payload: _rt::String) -> _rt::String;
     fn bulk_create(payload: _rt::String) -> _rt::String;
+    fn get_wallets(payload: _rt::String) -> _rt::String;
     /// Public API exports
     fn get_public_card(payload: _rt::String) -> _rt::String;
     fn lnurl_params(payload: _rt::String) -> _rt::String;
@@ -293,10 +317,15 @@ macro_rules! __export_world_giftcards_cabi {
         (export_name = "cabi_post_bulk-create")] unsafe extern "C" fn
         _post_return_bulk_create(arg0 : * mut u8,) { unsafe { $($path_to_types)*::
         __post_return_bulk_create::<$ty > (arg0) } } #[unsafe (export_name =
-        "get-public-card")] unsafe extern "C" fn export_get_public_card(arg0 : * mut u8,
-        arg1 : usize,) -> * mut u8 { unsafe { $($path_to_types)*::
-        _export_get_public_card_cabi::<$ty > (arg0, arg1) } } #[unsafe (export_name =
-        "cabi_post_get-public-card")] unsafe extern "C" fn
+        "get-wallets")] unsafe extern "C" fn export_get_wallets(arg0 : * mut u8, arg1 :
+        usize,) -> * mut u8 { unsafe { $($path_to_types)*::
+        _export_get_wallets_cabi::<$ty > (arg0, arg1) } } #[unsafe (export_name =
+        "cabi_post_get-wallets")] unsafe extern "C" fn _post_return_get_wallets(arg0 : *
+        mut u8,) { unsafe { $($path_to_types)*:: __post_return_get_wallets::<$ty > (arg0)
+        } } #[unsafe (export_name = "get-public-card")] unsafe extern "C" fn
+        export_get_public_card(arg0 : * mut u8, arg1 : usize,) -> * mut u8 { unsafe {
+        $($path_to_types)*:: _export_get_public_card_cabi::<$ty > (arg0, arg1) } }
+        #[unsafe (export_name = "cabi_post_get-public-card")] unsafe extern "C" fn
         _post_return_get_public_card(arg0 : * mut u8,) { unsafe { $($path_to_types)*::
         __post_return_get_public_card::<$ty > (arg0) } } #[unsafe (export_name =
         "lnurl-params")] unsafe extern "C" fn export_lnurl_params(arg0 : * mut u8, arg1 :
@@ -2244,9 +2273,9 @@ pub(crate) use __export_giftcards_impl as export;
 )]
 #[doc(hidden)]
 #[allow(clippy::octal_escapes)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 2220] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xac\x10\x01A\x02\x01\
-A\x0d\x01BS\x01r\x02\x05tables\x02ids\x04\0\x13storage-get-request\x03\0\0\x01ks\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 2236] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xbc\x10\x01A\x02\x01\
+A\x0e\x01BS\x01r\x02\x05tables\x02ids\x04\0\x13storage-get-request\x03\0\0\x01ks\
 \x01r\x01\x09data-json\x02\x04\0\x14storage-get-response\x03\0\x03\x01r\x02\x05t\
 ables\x02ids\x04\0\x1astorage-get-public-request\x03\0\x05\x01r\x02\x05tables\x09\
 data-json\x02\x04\0\x13storage-set-request\x03\0\x07\x01r\x01\x02ok\x7f\x04\0\x14\
@@ -2285,11 +2314,11 @@ q*\0,\x04\0\x0chttp-request\x01A\x01@\0\0.\x04\0\x03now\x01B\x01@\x01\x03req0\02
 \x04\0\x09random-id\x01C\x01@\x01\x03req4\06\x04\0\x03log\x01D\x03\0\x15lnbits:e\
 xtension/host\x05\0\x01@\x01\x07payloads\0s\x04\0\x0bcreate-card\x01\x01\x04\0\x09\
 get-cards\x01\x01\x04\0\x08get-card\x01\x01\x04\0\x0bupdate-card\x01\x01\x04\0\x0b\
-delete-card\x01\x01\x04\0\x0bbulk-create\x01\x01\x04\0\x0fget-public-card\x01\x01\
-\x04\0\x0clnurl-params\x01\x01\x04\0\x0elnurl-callback\x01\x01\x04\0\x0fon-invoi\
-ce-paid\x01\x01\x04\0\x1alnbits:extension/giftcards\x04\0\x0b\x0f\x01\0\x09giftc\
-ards\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.227.1\
-\x10wit-bindgen-rust\x060.41.0";
+delete-card\x01\x01\x04\0\x0bbulk-create\x01\x01\x04\0\x0bget-wallets\x01\x01\x04\
+\0\x0fget-public-card\x01\x01\x04\0\x0clnurl-params\x01\x01\x04\0\x0elnurl-callb\
+ack\x01\x01\x04\0\x0fon-invoice-paid\x01\x01\x04\0\x1alnbits:extension/giftcards\
+\x04\0\x0b\x0f\x01\0\x09giftcards\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\
+\x0dwit-component\x070.227.1\x10wit-bindgen-rust\x060.41.0";
 #[inline(never)]
 #[doc(hidden)]
 pub fn __link_custom_section_describing_imports() {

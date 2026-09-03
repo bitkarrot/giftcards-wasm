@@ -615,6 +615,20 @@ return function render(_ctx, _cache) {
                   val => val <= _ctx.walletBalance || 'Amount exceeds your wallet balance'
                 ]
                         }, null, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue", "rules"]),
+                        _createVNode(_component_q_select, {
+                          filled: "",
+                          dense: "",
+                          "emit-value": "",
+                          "map-options": "",
+                          modelValue: _ctx.walletId,
+                          "onUpdate:modelValue": $event => ((_ctx.walletId) = $event),
+                          options: _ctx.wallets,
+                          "option-label": "name",
+                          "option-value": "id",
+                          label: "Funding Wallet",
+                          hint: "Wallet used to fund this gift card.",
+                          rules: [val => !!val || 'Select a funding wallet']
+                        }, null, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue", "options", "rules"]),
                         _createVNode(_component_q_input, {
                           filled: "",
                           dense: "",
@@ -1028,6 +1042,20 @@ return function render(_ctx, _cache) {
                 default: _withCtx(() => [
                   _createElementVNode("div", { class: "q-gutter-md" }, [
                     _createElementVNode("h6", { class: "text-subtitle1 q-my-none" }, "Bulk Create Gift Cards"),
+                    _createVNode(_component_q_select, {
+                      filled: "",
+                      dense: "",
+                      "emit-value": "",
+                      "map-options": "",
+                      modelValue: _ctx.walletId,
+                      "onUpdate:modelValue": $event => ((_ctx.walletId) = $event),
+                      options: _ctx.wallets,
+                      "option-label": "name",
+                      "option-value": "id",
+                      label: "Funding Wallet",
+                      hint: "Wallet used to fund all cards in this batch.",
+                      rules: [val => !!val || 'Select a funding wallet']
+                    }, null, 8 /* PROPS */, ["modelValue", "onUpdate:modelValue", "options", "rules"]),
                     _createVNode(_component_q_tabs, {
                       modelValue: _ctx.bulkDialog.activeTab,
                       "onUpdate:modelValue": $event => ((_ctx.bulkDialog.activeTab) = $event),
