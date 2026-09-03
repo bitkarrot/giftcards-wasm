@@ -174,6 +174,21 @@ fn trusted_base_url(req: &Value) -> String {
         .unwrap_or_default()
 }
 
+fn creation_base_url(req: &Value) -> String {
+    let injected = trusted_base_url(req);
+    if !injected.is_empty() {
+        return injected;
+    }
+
+    // The current LNbits WASM adapter does not inject __baseUrl into guest
+    // payloads. Accept the browser-provided origin for card creation only,
+    // after the same scheme/authority validation used for stored URLs.
+    req.get("baseUrl")
+        .and_then(|b| b.as_str())
+        .map(sanitize_base_url)
+        .unwrap_or_default()
+}
+
 fn h_http_request(method: &str, url: &str, body: Option<&str>) -> Value {
     let resp = host::http_request(&host::HttpRequestParams {
         method: method.to_string(),
@@ -416,7 +431,7 @@ impl Guest for Component {
             Err(message) => return err(&message),
         };
 
-        let base_url = trusted_base_url(&req);
+        let base_url = creation_base_url(&req);
 
         let (card_id, raw_token, token_hash) = generate_tokens();
         let now = h_now();
@@ -748,7 +763,7 @@ impl Guest for Component {
             Err(message) => return err(&message),
         };
 
-        let base_url = trusted_base_url(&req);
+        let base_url = creation_base_url(&req);
 
         let mut card_ids: Vec<String> = Vec::new();
 
